@@ -1,3 +1,15 @@
+---
+title: Thinking Model Client
+emoji: 🤖
+colorFrom: blue
+colorTo: blue
+sdk: docker
+sdk_version: 1.0.0
+app_file: Dockerfile
+pinned: false
+---
+
+
 # Thinking Model Client
 
 A modern React-based chat application that integrates with AI models and displays their thinking process alongside responses.
