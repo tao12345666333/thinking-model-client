@@ -4,6 +4,8 @@ function ChatWindow({ chat, settings, onUpdateChat }) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [collapsedThinks, setCollapsedThinks] = useState(new Set());
+  const [partialResponse, setPartialResponse] = useState('');
+  const [streamController, setStreamController] = useState(null);
 
   // 添加解析消息的函数
   const parseMessage = (content) => {
@@ -29,10 +31,15 @@ function ChatWindow({ chat, settings, onUpdateChat }) {
   const handleSendMessage = async () => {
     if (!input.trim()) return;
 
+    // Cancel any ongoing stream
+    if (streamController) {
+      streamController.abort();
+    }
+
     const newMessage = {
       role: 'user',
       content: input,
-      timestamp: Date.now()  // 确保添加时间戳
+      timestamp: Date.now()
     };
 
     const updatedChat = {
@@ -41,8 +48,12 @@ function ChatWindow({ chat, settings, onUpdateChat }) {
     };
     onUpdateChat(updatedChat);
     setInput('');
+    setPartialResponse('');
 
-    // 发送API请求
+    // Create new AbortController for this stream
+    const controller = new AbortController();
+    setStreamController(controller);
+
     setIsLoading(true);
     try {
       const response = await fetch('/api/chat', {
@@ -59,6 +70,7 @@ function ChatWindow({ chat, settings, onUpdateChat }) {
           model: settings.model,
           apiEndpoint: settings.apiEndpoint,
         }),
+        signal: controller.signal
       });
 
       if (!response.ok) {
@@ -66,14 +78,35 @@ function ChatWindow({ chat, settings, onUpdateChat }) {
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
       }
 
-      const data = await response.json();
-      
-      // 添加AI回复
-      const aiMessage = {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let aiMessage = {
         role: 'assistant',
-        content: data.choices[0].message.content,
+        content: '',
         timestamp: Date.now()
       };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(line => line.trim() !== '');
+        
+        for (const line of lines) {
+          const message = line.replace(/^data: /, '');
+          if (message === '[DONE]') break;
+
+          try {
+            const parsed = JSON.parse(message);
+            const content = parsed.choices[0].delta.content || '';
+            aiMessage.content += content;
+            setPartialResponse(aiMessage.content);
+          } catch (error) {
+            console.error('Error parsing chunk:', error);
+          }
+        }
+      }
 
       const finalChat = {
         ...updatedChat,
@@ -81,10 +114,14 @@ function ChatWindow({ chat, settings, onUpdateChat }) {
       };
       onUpdateChat(finalChat);
     } catch (error) {
-      console.error('Failed to send message:', error);
-      alert(`Failed to send message: ${error.message}`);
+      if (error.name !== 'AbortError') {
+        console.error('Failed to send message:', error);
+        alert(`Failed to send message: ${error.message}`);
+      }
     } finally {
       setIsLoading(false);
+      setPartialResponse('');
+      setStreamController(null);
     }
   };
 
@@ -129,7 +166,10 @@ function ChatWindow({ chat, settings, onUpdateChat }) {
         {isLoading && (
           <div className="message assistant">
             <div className="message-content">
-              <div className="loading-indicator">Thinking...</div>
+              <div className="content-text">
+                {partialResponse}
+                <span className="loading-cursor">|</span>
+              </div>
             </div>
           </div>
         )}
@@ -153,4 +193,4 @@ function ChatWindow({ chat, settings, onUpdateChat }) {
   );
 }
 
-export default ChatWindow; 
+export default ChatWindow;

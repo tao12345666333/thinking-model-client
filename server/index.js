@@ -15,9 +15,18 @@ app.use(express.json());
 
 app.post('/api/chat', async (req, res) => {
   const { messages, apiEndpoint, apiKey, model } = req.body;
+  
+  console.log('Received chat request with:', {
+    apiEndpoint,
+    model,
+    messageCount: messages.length
+  });
 
   try {
-    const response = await fetch(`${apiEndpoint}/v1/chat/completions`, {
+    const apiUrl = `${apiEndpoint}/v1/chat/completions`;
+    console.log('Calling API endpoint:', apiUrl);
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -25,17 +34,42 @@ app.post('/api/chat', async (req, res) => {
       },
       body: JSON.stringify({
         model: model,
-        messages: messages
+        messages: messages,
+        stream: true
       })
     });
 
+    console.log('API response status:', response.status);
+    console.log('API response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
       const errorData = await response.text();
+      console.error('API error:', {
+        status: response.status,
+        error: errorData
+      });
       throw new Error(`API error: ${response.status} - ${errorData}`);
     }
 
-    const data = await response.json();
-    res.json(data);
+    // Set headers for streaming
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // Set SSE headers
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    });
+
+    // Pipe the API response to the client
+    response.body.pipe(res).on('error', (err) => {
+      console.error('Stream error:', err);
+      res.status(500).end();
+    }).on('end', () => {
+      console.log('Stream completed successfully');
+    });
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ error: error.message });
@@ -54,4 +88,4 @@ if (process.env.NODE_ENV === 'production') {
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
-}); 
+});
