@@ -563,4 +563,68 @@ button[type="submit"]:disabled {
   gap: 8px;
   color: #666;
   font-size: 14px;
-} 
+}
+
+/* Setting hint styles */
+.setting-hint {
+  margin-top: 8px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  font-size: 0.9em;
+}
+
+.setting-hint p {
+  margin: 0 0 8px 0;
+  color: #495057;
+  font-weight: 500;
+}
+
+.setting-hint ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style-type: none;
+}
+
+.setting-hint li {
+  position: relative;
+  padding-left: 1.2em;
+  margin-bottom: 4px;
+  color: #6c757d;
+}
+
+.setting-hint li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #adb5bd;
+}
+
+.hint-toggle {
+  width: 100%;
+  padding: 8px;
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8em;
+  color: #495057;
+  text-align: left;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.hint-toggle:hover {
+  background: #f8f9fa;
+}
+
+.hint-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.hint-content.expanded {
+  max-height: 500px; /* Increased to accommodate more content */
+}

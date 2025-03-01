@@ -60,5 +60,8 @@ This will concurrently run both the frontend development server and the backend 
 Configure the application through the settings panel with:
 
 - API Endpoint
+  - Ends with / → /chat/completions will be appended
+  - Ends with # → # will be removed
+  - Other cases → /v1/chat/completions will be appended
 - API Key
 - Model Name (e.g., DeepSeek-R1)

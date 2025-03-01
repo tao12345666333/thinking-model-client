@@ -23,7 +23,14 @@ app.post('/api/chat', async (req, res) => {
   });
 
   try {
-    const apiUrl = `${apiEndpoint}/v1/chat/completions`;
+    let apiUrl;
+    if (apiEndpoint.endsWith('#')) {
+        apiUrl = apiEndpoint.slice(0, -1);
+    } else if (apiEndpoint.endsWith('/')) {
+        apiUrl = `${apiEndpoint}chat/completions`;
+    } else {
+        apiUrl = `${apiEndpoint}/v1/chat/completions`;
+    }
     console.log('Calling API endpoint:', apiUrl);
     
     const response = await fetch(apiUrl, {

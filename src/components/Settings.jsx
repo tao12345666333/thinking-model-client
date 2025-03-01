@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 function Settings({ settings, onSave, setSettings }) {
   const [formData, setFormData] = useState(settings);
+  const [isHintExpanded, setIsHintExpanded] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -23,6 +24,23 @@ function Settings({ settings, onSave, setSettings }) {
             })}
             placeholder="Enter API endpoint"
           />
+          <div className="setting-hint">
+            <button 
+              type="button" 
+              className="hint-toggle"
+              onClick={() => setIsHintExpanded(!isHintExpanded)}
+            >
+              {isHintExpanded ? 'Hide' : 'Show'} API Endpoint Format Examples
+            </button>
+            <div className={`hint-content ${isHintExpanded ? 'expanded' : ''}`}>
+              <p>API Endpoint format examples:</p>
+              <ul>
+                <li>Ends with / → /chat/completions will be appended</li>
+                <li>Ends with # → # will be removed</li>
+                <li>Other cases → /v1/chat/completions will be appended</li>
+              </ul>
+            </div>
+          </div>
         </div>
         <div className="setting-item">
           <label>API Key:</label>
@@ -54,4 +72,4 @@ function Settings({ settings, onSave, setSettings }) {
   );
 }
 
-export default Settings; 
+export default Settings;
