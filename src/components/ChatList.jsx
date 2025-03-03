@@ -1,6 +1,6 @@
 import React from 'react';
 
-function ChatList({ chats, currentChat, onSelectChat, onDeleteChat, onCreateNewChat }) {
+function ChatList({ chats, currentChat, onSelectChat, onDeleteChat, onCreateNewChat, collapsed }) {
   return (
     <div className="chat-list">
       <h2>Conversations</h2>
