@@ -1,13 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
-function ChatWindow({ chat, settings, onUpdateChat }) {
+function ChatWindow({ chat, profile, onUpdateChat }) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [collapsedThinks, setCollapsedThinks] = useState(new Set());
   const [partialResponse, setPartialResponse] = useState('');
   const [streamController, setStreamController] = useState(null);
+  const messagesEndRef = useRef(null);
 
-  // 添加解析消息的函数
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [chat.messages, partialResponse]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Parse message to separate thinking process and content
   const parseMessage = (content) => {
     const thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/);
     const mainContent = content.replace(/<think>[\s\S]*?<\/think>/, '').trim();
@@ -17,7 +27,7 @@ function ChatWindow({ chat, settings, onUpdateChat }) {
     };
   };
 
-  // 添加切换折叠状态的函数
+  // Toggle thinking process visibility
   const toggleThink = (timestamp) => {
     const newCollapsed = new Set(collapsedThinks);
     if (newCollapsed.has(timestamp)) {
@@ -66,9 +76,9 @@ function ChatWindow({ chat, settings, onUpdateChat }) {
             role: msg.role,
             content: msg.content
           }))],
-          apiKey: settings.apiKey,
-          model: settings.model,
-          apiEndpoint: settings.apiEndpoint,
+          apiKey: profile.apiKey,
+          model: profile.model,
+          apiEndpoint: profile.apiEndpoint,
         }),
         signal: controller.signal
       });
@@ -125,6 +135,12 @@ function ChatWindow({ chat, settings, onUpdateChat }) {
     }
   };
 
+  // Format the timestamp
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  };
+
   return (
     <div className="chat-window">
       <div className="chat-messages">
@@ -135,51 +151,62 @@ function ChatWindow({ chat, settings, onUpdateChat }) {
 
           return (
             <div key={index} className={`message ${message.role}`}>
-              <div className="message-content">
-                {message.role === 'assistant' && parsedMessage.think && (
-                  <div className="think-block">
-                    <div 
-                      className="think-header"
-                      onClick={() => toggleThink(message.timestamp)}
-                    >
-                      Thinking Process {collapsedThinks.has(message.timestamp) ? '▼' : '▲'}
-                    </div>
-                    {!collapsedThinks.has(message.timestamp) && (
-                      <div className="think-content">
-                        {parsedMessage.think}
+              {message.role === 'assistant' && (
+                <>
+                  {parsedMessage.think && (
+                    <div className="reasoning-container">
+                      <div 
+                        className="reasoning-header"
+                        onClick={() => toggleThink(message.timestamp)}
+                      >
+                        <span>Reasoned for a few seconds</span>
+                        <span className="toggle-icon">{collapsedThinks.has(message.timestamp) ? '▼' : '▲'}</span>
                       </div>
-                    )}
+                      {!collapsedThinks.has(message.timestamp) && (
+                        <div className="reasoning-content">
+                          {parsedMessage.think}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className="message-content">
+                    {parsedMessage.content}
                   </div>
-                )}
-                <div className="content-text">
+                </>
+              )}
+              
+              {message.role === 'user' && (
+                <div className="message-content">
                   {parsedMessage.content}
                 </div>
-              </div>
+              )}
+              
               {message.timestamp && (
                 <div className="message-time">
-                  {new Date(message.timestamp).toLocaleTimeString()}
+                  {formatTime(message.timestamp)}
                 </div>
               )}
             </div>
           );
         })}
+        
         {isLoading && (
           <div className="message assistant">
             <div className="message-content">
-              <div className="content-text">
-                {partialResponse}
-                <span className="loading-cursor">|</span>
-              </div>
+              {partialResponse}
+              <span className="loading-cursor">|</span>
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
+      
       <div className="chat-input">
         <textarea
           className="message-input"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
+          placeholder="Send a message..."
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
@@ -187,7 +214,13 @@ function ChatWindow({ chat, settings, onUpdateChat }) {
             }
           }}
         />
-        <button onClick={handleSendMessage}>Send</button>
+        <button 
+          onClick={handleSendMessage}
+          disabled={!input.trim() || isLoading}
+          className="send-button"
+        >
+          Send
+        </button>
       </div>
     </div>
   );
