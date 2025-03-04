@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 function ChatWindow({ chat, profile, onUpdateChat }) {
   const [input, setInput] = useState('');
@@ -6,6 +7,7 @@ function ChatWindow({ chat, profile, onUpdateChat }) {
   const [collapsedThinks, setCollapsedThinks] = useState(new Set());
   const [partialResponse, setPartialResponse] = useState('');
   const [streamController, setStreamController] = useState(null);
+  const [copiedMessageId, setCopiedMessageId] = useState(null);
   const messagesEndRef = useRef(null);
 
   // Scroll to bottom when messages change
@@ -141,6 +143,14 @@ function ChatWindow({ chat, profile, onUpdateChat }) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
+  const handleCopyMessage = (content) => {
+    navigator.clipboard.writeText(content).then(() => {
+      // Show feedback by temporarily updating the copied message state
+      setCopiedMessageId(content);
+      setTimeout(() => setCopiedMessageId(null), 2000);
+    });
+  };
+
   return (
     <div className="chat-window">
       <div className="chat-messages">
@@ -164,20 +174,32 @@ function ChatWindow({ chat, profile, onUpdateChat }) {
                       </div>
                       {!collapsedThinks.has(message.timestamp) && (
                         <div className="reasoning-content">
-                          {parsedMessage.think}
+                          <ReactMarkdown>{parsedMessage.think}</ReactMarkdown>
                         </div>
                       )}
                     </div>
                   )}
                   <div className="message-content">
-                    {parsedMessage.content}
+                    <ReactMarkdown>{parsedMessage.content}</ReactMarkdown>
+                    <button 
+                      className={`copy-button ${copiedMessageId === message.content ? 'copied' : ''}`}
+                      onClick={() => handleCopyMessage(message.content)}
+                    >
+                      {copiedMessageId === message.content ? 'Copied!' : 'Copy'}
+                    </button>
                   </div>
                 </>
               )}
               
               {message.role === 'user' && (
                 <div className="message-content">
-                  {parsedMessage.content}
+                  <ReactMarkdown>{parsedMessage.content}</ReactMarkdown>
+                  <button 
+                    className={`copy-button ${copiedMessageId === message.content ? 'copied' : ''}`}
+                    onClick={() => handleCopyMessage(message.content)}
+                  >
+                    {copiedMessageId === message.content ? 'Copied!' : 'Copy'}
+                  </button>
                 </div>
               )}
               
@@ -193,7 +215,7 @@ function ChatWindow({ chat, profile, onUpdateChat }) {
         {isLoading && (
           <div className="message assistant">
             <div className="message-content">
-              {partialResponse}
+              <ReactMarkdown>{partialResponse}</ReactMarkdown>
               <span className="loading-cursor">|</span>
             </div>
           </div>
