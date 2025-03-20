@@ -12,7 +12,6 @@ function Settings({
   const [localProfiles, setLocalProfiles] = useState(profiles);
   const [localSummarizationProfile, setLocalSummarizationProfile] = useState(summarizationProfile || {
     id: 'default-summarization-profile',
-    name: 'Summarization Profile',
     apiEndpoint: '',
     apiKey: '',
     model: 'DeepSeek-R1'
@@ -114,19 +113,6 @@ function Settings({
         <h3>Summarization Profile</h3>
         <div className="current-profile-section">
           <div className="setting-item">
-            <label>Profile Name:</label>
-            <input
-              type="text"
-              value={localSummarizationProfile.name}
-              onChange={(e) => handleSummarizationProfileChange({
-                ...localSummarizationProfile,
-                name: e.target.value
-              })}
-              placeholder="Enter profile name"
-            />
-          </div>
-          
-          <div className="setting-item">
             <label>API Endpoint:</label>
             <input
               type="text"
@@ -179,8 +165,7 @@ function Settings({
                 value={editingProfile.name}
                 onChange={(e) => handleProfileChange({
                   ...editingProfile,
-                  name: e.target.value
-                })}
+                    })}
                 placeholder="Enter profile name"
               />
             </div>
