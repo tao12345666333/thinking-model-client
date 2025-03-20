@@ -109,50 +109,6 @@ function Settings({
         </div>
       </div>
 
-      <div className="profiles-section">
-        <h3>Summarization Profile</h3>
-        <div className="current-profile-section">
-          <div className="setting-item">
-            <label>API Endpoint:</label>
-            <input
-              type="text"
-              value={localSummarizationProfile.apiEndpoint}
-              onChange={(e) => handleSummarizationProfileChange({
-                ...localSummarizationProfile,
-                apiEndpoint: e.target.value
-              })}
-              placeholder="Enter API endpoint"
-            />
-          </div>
-          
-          <div className="setting-item">
-            <label>API Key:</label>
-            <input
-              type="password"
-              value={localSummarizationProfile.apiKey}
-              onChange={(e) => handleSummarizationProfileChange({
-                ...localSummarizationProfile,
-                apiKey: e.target.value
-              })}
-              placeholder="Enter your API key"
-            />
-          </div>
-          
-          <div className="setting-item">
-            <label>Model:</label>
-            <input
-              type="text"
-              value={localSummarizationProfile.model}
-              onChange={(e) => handleSummarizationProfileChange({
-                ...localSummarizationProfile,
-                model: e.target.value
-              })}
-              placeholder="Enter model name (e.g., DeepSeek-R1)"
-            />
-          </div>
-        </div>
-      </div>
-      
       <form onSubmit={handleSubmit}>
         {editingProfile && (
           <div className="current-profile-section">
@@ -229,6 +185,50 @@ function Settings({
         )}
 
         
+      <div className="profiles-section">
+        <h3>Summarization Profile</h3>
+        <div className="current-profile-section">
+          <div className="setting-item">
+            <label>API Endpoint:</label>
+            <input
+              type="text"
+              value={localSummarizationProfile.apiEndpoint}
+              onChange={(e) => handleSummarizationProfileChange({
+                ...localSummarizationProfile,
+                apiEndpoint: e.target.value
+              })}
+              placeholder="Enter API endpoint"
+            />
+          </div>
+          
+          <div className="setting-item">
+            <label>API Key:</label>
+            <input
+              type="password"
+              value={localSummarizationProfile.apiKey}
+              onChange={(e) => handleSummarizationProfileChange({
+                ...localSummarizationProfile,
+                apiKey: e.target.value
+              })}
+              placeholder="Enter your API key"
+            />
+          </div>
+          
+          <div className="setting-item">
+            <label>Model:</label>
+            <input
+              type="text"
+              value={localSummarizationProfile.model}
+              onChange={(e) => handleSummarizationProfileChange({
+                ...localSummarizationProfile,
+                model: e.target.value
+              })}
+              placeholder="Enter model name (e.g., DeepSeek-R1)"
+            />
+          </div>
+        </div>
+      </div>
+
         <div className="settings-actions">
           <button type="submit" className="save-button">Save Settings</button>
           <button type="button" className="cancel-button" onClick={onCloseSettings}>Cancel</button>
