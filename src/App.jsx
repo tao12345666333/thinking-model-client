@@ -15,6 +15,14 @@ function App() {
     }
   ]);
   
+  const [summarizationProfile, setSummarizationProfile] = useLocalStorage('summarizationProfile', {
+    id: 'default-summarization-profile',
+    name: 'Summarization Profile',
+    apiEndpoint: '',
+    apiKey: '',
+    model: 'DeepSeek-R1'
+  });
+  
   const [activeProfileId, setActiveProfileId] = useLocalStorage('activeProfileId', 'default');
   
   const [chats, setChats] = useLocalStorage('chats', []);
@@ -124,6 +132,7 @@ function App() {
             <ChatWindow 
               chat={chats.find(c => c.id === currentChatId)}
               profile={activeProfile}
+              summarizationProfile={summarizationProfile}
               onUpdateChat={(updatedChat) => {
                 setChats(chats.map(c => 
                   c.id === updatedChat.id ? updatedChat : c
@@ -151,7 +160,7 @@ function App() {
             >
               ×
             </button>
-            <Settings 
+              <Settings 
               profiles={profiles} 
               activeProfileId={activeProfileId}
               onSaveProfiles={(newProfiles) => {
@@ -161,6 +170,8 @@ function App() {
                   setActiveProfileId(newProfiles[0]?.id || null);
                 }
               }}
+              onSaveSummarizationProfile={setSummarizationProfile}
+              summarizationProfile={summarizationProfile}
               onChangeActiveProfile={setActiveProfileId}
               onCloseSettings={() => setShowSettings(false)}
             />
@@ -182,4 +193,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 
-function ChatWindow({ chat, profile, onUpdateChat }) {
+function ChatWindow({ chat, profile, summarizationProfile, onUpdateChat }) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [collapsedThinks, setCollapsedThinks] = useState(new Set());
@@ -125,6 +125,43 @@ function ChatWindow({ chat, profile, onUpdateChat }) {
         messages: [...updatedChat.messages, aiMessage]
       };
       onUpdateChat(finalChat);
+
+      // Generate summary title after first message exchange
+      if (finalChat.messages.length === 2) {
+        try {
+          const summaryResponse = await fetch('/api/summarize', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              content: finalChat.messages.map(msg => msg.content).join('\n'),
+              apiKey: summarizationProfile?.apiKey || profile.apiKey || '',
+              model: summarizationProfile?.model || profile.model || 'gpt-3.5-turbo',
+              apiEndpoint: summarizationProfile?.apiEndpoint || profile.apiEndpoint || 'https://api.openai.com/v1'
+            })
+          });
+
+          if (!summaryResponse.ok) {
+            throw new Error(`Summary API error: ${summaryResponse.status}`);
+          }
+
+          const { summary } = await summaryResponse.json();
+          const updatedChatWithTitle = {
+            ...finalChat,
+            title: summary
+          };
+          onUpdateChat(updatedChatWithTitle);
+        } catch (error) {
+          console.error('Failed to generate summary:', error);
+          // Fallback to default title if summarization fails
+          const updatedChatWithTitle = {
+            ...finalChat,
+            title: 'New Conversation'
+          };
+          onUpdateChat(updatedChatWithTitle);
+        }
+      }
     } catch (error) {
       if (error.name !== 'AbortError') {
         console.error('Failed to send message:', error);

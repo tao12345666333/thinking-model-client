@@ -13,6 +13,61 @@ const __dirname = path.dirname(__filename)
 app.use(cors());
 app.use(express.json());
 
+app.post('/api/summarize', async (req, res) => {
+  const { content, apiEndpoint, apiKey, model } = req.body;
+  
+  console.log('Received summarize request with:', {
+    apiEndpoint,
+    model,
+    contentLength: content.length
+  });
+
+  try {
+    let apiUrl;
+    if (apiEndpoint.endsWith('#')) {
+        apiUrl = apiEndpoint.slice(0, -1);
+    } else if (apiEndpoint.endsWith('/')) {
+        apiUrl = `${apiEndpoint}chat/completions`;
+    } else {
+        apiUrl = `${apiEndpoint}/v1/chat/completions`;
+    }
+    console.log('Calling API endpoint:', apiUrl);
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [{
+          role: 'user',
+          content: `Summarize this conversation in 3-5 words: ${content}`
+        }],
+        temperature: 0.2,
+        max_tokens: 20
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('API error:', {
+        status: response.status,
+        error: errorData
+      });
+      throw new Error(`API error: ${response.status} - ${errorData}`);
+    }
+
+    const data = await response.json();
+    const summary = data.choices[0].message.content.trim();
+    res.json({ summary });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/chat', async (req, res) => {
   const { messages, apiEndpoint, apiKey, model } = req.body;
   
