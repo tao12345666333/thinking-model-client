@@ -3,7 +3,6 @@ import React from 'react';
 function ChatList({ chats, currentChat, onSelectChat, onDeleteChat, onCreateNewChat, collapsed }) {
   return (
     <div className="chat-list">
-      <h2>Conversations</h2>
       <button className="new-chat" onClick={onCreateNewChat}>
         New Chat
       </button>
@@ -33,4 +32,4 @@ function ChatList({ chats, currentChat, onSelectChat, onDeleteChat, onCreateNewC
   );
 }
 
-export default ChatList; 
+export default ChatList;
