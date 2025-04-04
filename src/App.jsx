@@ -32,6 +32,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const activeProfile = profiles.find(p => p.id === activeProfileId) || profiles[0];
 
@@ -58,6 +59,18 @@ function App() {
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
+    // 在移动设备上，如果侧边栏是展开的，点击收起按钮也应该关闭移动菜单
+    if (window.innerWidth <= 768 && !sidebarCollapsed) {
+      setMobileMenuOpen(false);
+    }
+  };
+
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+    // 如果侧边栏是收起的，则展开它
+    if (sidebarCollapsed) {
+      setSidebarCollapsed(false);
+    }
   };
 
   const toggleProfileDropdown = () => {
@@ -72,7 +85,13 @@ function App() {
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden">
       <div className="flex justify-between items-center px-5 h-header border-b border-border bg-background">
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
+          <button
+            className="md:hidden bg-transparent border-0 text-base text-lightest-text cursor-pointer flex items-center justify-center z-10 w-8 h-8 hover:text-text"
+            onClick={toggleMobileMenu}
+          >
+            ☰
+          </button>
           <h1 className="text-xl font-semibold text-text">Thinking Model Client</h1>
         </div>
         <div className="flex items-center gap-2.5">
@@ -107,7 +126,7 @@ function App() {
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        <div className={`w-sidebar border-r border-border flex flex-col transition-[width] duration-300 ease-in-out bg-background ${sidebarCollapsed ? 'w-[50px] overflow-hidden' : ''}`}>
+        <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''} ${mobileMenuOpen ? 'mobile-open' : ''}`}>
           <div className="flex justify-between items-center py-3 px-4 border-b border-border">
             <h2 className="text-sm font-semibold text-light-text m-0">Conversations</h2>
             <button

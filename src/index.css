@@ -20,6 +20,10 @@
   --assistant-message-color: #1a1a1a;
   --hover-color: #f5f5f5;
   --active-color: #e6f2ff;
+
+  /* Responsive sidebar width */
+  --mobile-sidebar-width: 100%;
+  --tablet-sidebar-width: 250px;
 }
 
 * {
@@ -547,5 +551,91 @@ body {
 
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-400;
+  }
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0 1rem;
+  }
+
+  .app-title {
+    font-size: 1rem;
+  }
+
+  .sidebar {
+    position: fixed;
+    z-index: 50;
+    height: 100%;
+    width: 100%;
+    left: -100%;
+    transition: all 0.3s ease-in-out;
+  }
+
+  .sidebar.mobile-open {
+    left: 0;
+  }
+
+  /* 确保在移动设备上收起的侧边栏仍然可见 */
+  .sidebar.collapsed {
+    width: 50px;
+    left: 0;
+  }
+
+  .message-content {
+    max-width: 100%;
+  }
+
+  .settings-modal {
+    width: 95%;
+    max-height: 80vh;
+  }
+
+  .profiles-list {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .chat-input {
+    padding: 0.75rem;
+  }
+
+  .message-input {
+    font-size: 0.875rem;
+  }
+
+  .send-button {
+    padding: 0 1rem;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .app-header {
+    height: 50px;
+  }
+
+  .right-section {
+    gap: 0.5rem;
+  }
+
+  .profile-dropdown-button,
+  .settings-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .chat-messages {
+    padding: 0.75rem;
+  }
+
+  .message-content {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .welcome-screen h2 {
+    font-size: 1.25rem;
   }
 }
