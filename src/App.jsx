@@ -132,6 +132,8 @@ function App() {
             <button
               className="bg-transparent border-0 text-base text-lightest-text cursor-pointer flex items-center justify-center z-10 w-6 h-6 hover:text-text"
               onClick={toggleSidebar}
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {sidebarCollapsed ? '→' : '←'}
             </button>
@@ -145,6 +147,16 @@ function App() {
             collapsed={sidebarCollapsed}
           />
         </div>
+
+        {/* Floating expand button that appears when sidebar is collapsed */}
+        <button
+          className="expand-sidebar-button"
+          onClick={toggleSidebar}
+          aria-label="Expand sidebar"
+          title="Expand sidebar"
+        >
+          →
+        </button>
 
         <div className="flex-1 flex flex-col overflow-hidden bg-background">
           {currentChatId ? (

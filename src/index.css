@@ -115,9 +115,16 @@ body {
     @apply w-[50px] overflow-hidden;
   }
 
-  .sidebar.collapsed .chat-list,
+  .sidebar.collapsed .chat-list {
+    @apply hidden;
+  }
+
   .sidebar.collapsed .sidebar-header h2 {
     @apply hidden;
+  }
+
+  .sidebar.collapsed .sidebar-header {
+    @apply justify-center;
   }
 
   .sidebar-header {
@@ -125,7 +132,7 @@ body {
   }
 
   .sidebar.collapsed .sidebar-header {
-    @apply py-3 px-[5px] justify-center;
+    @apply py-3 px-[5px];
   }
 
   .sidebar-header h2 {
@@ -138,6 +145,24 @@ body {
 
   .toggle-sidebar-button:hover {
     @apply text-text;
+  }
+
+  /* Ensure the toggle button is always visible and clickable */
+  .sidebar.collapsed .toggle-sidebar-button {
+    @apply opacity-100 visible;
+  }
+
+  /* Floating expand button that appears when sidebar is collapsed */
+  .expand-sidebar-button {
+    @apply fixed left-[60px] top-[80px] bg-background border border-border rounded-full w-8 h-8 flex items-center justify-center cursor-pointer shadow-md z-20 opacity-0 invisible transition-all duration-300;
+  }
+
+  .sidebar.collapsed ~ .expand-sidebar-button {
+    @apply opacity-100 visible;
+  }
+
+  .expand-sidebar-button:hover {
+    @apply bg-hover text-text;
   }
 }
 
@@ -577,10 +602,15 @@ body {
     left: 0;
   }
 
-  /* 确保在移动设备上收起的侧边栏仍然可见 */
+  /* Make sure the collapsed sidebar is still visible on mobile */
   .sidebar.collapsed {
     width: 50px;
     left: 0;
+  }
+
+  /* Hide the floating expand button on mobile as it's not needed */
+  .expand-sidebar-button {
+    display: none;
   }
 
   .message-content {
