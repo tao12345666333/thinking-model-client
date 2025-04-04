@@ -14,7 +14,7 @@ function App() {
       model: 'DeepSeek-R1'
     }
   ]);
-  
+
   const [summarizationProfile, setSummarizationProfile] = useLocalStorage('summarizationProfile', {
     id: 'default-summarization-profile',
     name: 'Summarization Profile',
@@ -22,9 +22,9 @@ function App() {
     apiKey: '',
     model: 'DeepSeek-R1'
   });
-  
+
   const [activeProfileId, setActiveProfileId] = useLocalStorage('activeProfileId', 'default');
-  
+
   const [chats, setChats] = useLocalStorage('chats', []);
   const [currentChatId, setCurrentChatId] = useState(null);
   const [error, setError] = useState(null);
@@ -70,25 +70,25 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      <div className="app-header">
-        <div className="left-section">
-          <h1 className="app-title">Thinking Model Client</h1>
+    <div className="flex flex-col h-screen w-full overflow-hidden">
+      <div className="flex justify-between items-center px-5 h-header border-b border-border bg-background">
+        <div className="flex items-center">
+          <h1 className="text-xl font-semibold text-text">Thinking Model Client</h1>
         </div>
-        <div className="right-section">
-          <div className="profile-dropdown-container">
-            <button 
-              className="profile-dropdown-button" 
+        <div className="flex items-center gap-2.5">
+          <div className="relative">
+            <button
+              className="py-1.5 px-3 bg-background border border-border rounded text-sm text-text cursor-pointer flex items-center gap-1.5"
               onClick={toggleProfileDropdown}
             >
               {activeProfile.name} ▼
             </button>
             {showProfileDropdown && (
-              <div className="profile-dropdown-menu">
+              <div className="absolute top-full right-0 w-[200px] bg-background border border-border rounded shadow-md z-10 mt-1.5">
                 {profiles.map(profile => (
-                  <div 
-                    key={profile.id} 
-                    className={`profile-option ${profile.id === activeProfileId ? 'active' : ''}`}
+                  <div
+                    key={profile.id}
+                    className={`p-3 cursor-pointer transition-colors duration-200 text-sm ${profile.id === activeProfileId ? 'bg-active font-medium' : 'hover:bg-hover'}`}
                     onClick={() => handleProfileSelect(profile.id)}
                   >
                     {profile.name}
@@ -97,8 +97,8 @@ function App() {
               </div>
             )}
           </div>
-          <button 
-            className="settings-button" 
+          <button
+            className="py-1.5 px-3 bg-background border border-border rounded text-sm text-text cursor-pointer hover:bg-hover"
             onClick={toggleSettings}
           >
             Settings
@@ -106,12 +106,12 @@ function App() {
         </div>
       </div>
 
-      <div className="app-content">
-        <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-          <div className="sidebar-header">
-            <h2>Conversations</h2>
-            <button 
-              className="toggle-sidebar-button" 
+      <div className="flex flex-1 overflow-hidden">
+        <div className={`w-sidebar border-r border-border flex flex-col transition-[width] duration-300 ease-in-out bg-background ${sidebarCollapsed ? 'w-[50px] overflow-hidden' : ''}`}>
+          <div className="flex justify-between items-center py-3 px-4 border-b border-border">
+            <h2 className="text-sm font-semibold text-light-text m-0">Conversations</h2>
+            <button
+              className="bg-transparent border-0 text-base text-lightest-text cursor-pointer flex items-center justify-center z-10 w-6 h-6 hover:text-text"
               onClick={toggleSidebar}
             >
               {sidebarCollapsed ? '→' : '←'}
@@ -127,23 +127,23 @@ function App() {
           />
         </div>
 
-        <div className="main-content">
+        <div className="flex-1 flex flex-col overflow-hidden bg-background">
           {currentChatId ? (
-            <ChatWindow 
+            <ChatWindow
               chat={chats.find(c => c.id === currentChatId)}
               profile={activeProfile}
               summarizationProfile={summarizationProfile}
               onUpdateChat={(updatedChat) => {
-                setChats(chats.map(c => 
+                setChats(chats.map(c =>
                   c.id === updatedChat.id ? updatedChat : c
                 ));
               }}
             />
           ) : (
-            <div className="welcome-screen">
-              <h2>Welcome to Thinking Model Client</h2>
-              <p>Start a new conversation or select an existing one.</p>
-              <button className="new-chat-button" onClick={createNewChat}>
+            <div className="flex flex-col items-center justify-center h-full p-5 text-center">
+              <h2 className="text-2xl font-semibold mb-2.5 text-text">Welcome to Thinking Model Client</h2>
+              <p className="text-light-text mb-5 text-sm">Start a new conversation or select an existing one.</p>
+              <button className="py-2.5 px-5 bg-primary text-white border-none rounded cursor-pointer text-sm transition-colors duration-200 hover:bg-primary-hover" onClick={createNewChat}>
                 Start New Conversation
               </button>
             </div>
@@ -152,16 +152,16 @@ function App() {
       </div>
 
       {showSettings && (
-        <div className="settings-overlay">
-          <div className="settings-modal">
-            <button 
-              className="close-settings-button" 
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]">
+          <div className="bg-background rounded-lg w-[600px] max-w-[90%] max-h-[90vh] overflow-y-auto relative p-6 shadow-md">
+            <button
+              className="absolute top-4 right-4 bg-transparent border-none text-xl cursor-pointer text-lightest-text w-6 h-6 flex items-center justify-center rounded hover:bg-hover hover:text-text"
               onClick={toggleSettings}
             >
               ×
             </button>
-              <Settings 
-              profiles={profiles} 
+              <Settings
+              profiles={profiles}
               activeProfileId={activeProfileId}
               onSaveProfiles={(newProfiles) => {
                 setProfiles(newProfiles);
@@ -180,12 +180,12 @@ function App() {
       )}
 
       {error && (
-        <div className="error-message">
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-red-100 text-red-600 py-2.5 px-5 rounded text-sm shadow-md z-[1000]">
           Error: {error}
         </div>
       )}
       {loading && (
-        <div className="loading">
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-blue-50 text-blue-700 py-2.5 px-5 rounded text-sm shadow-md z-[1000]">
           Loading...
         </div>
       )}
