@@ -3,6 +3,9 @@ import cors from 'cors';
 import fetch from 'node-fetch';
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { callMcpServer, discoverMcpServerTools, executeMcpTool } from './mcp.js';
+
+// Note: Run the mock MCP server separately with: node server/start-mock-mcp.js
 
 const app = express();
 const port = 7860;
@@ -15,7 +18,7 @@ app.use(express.json());
 
 app.post('/api/summarize', async (req, res) => {
   const { content, apiEndpoint, apiKey, model } = req.body;
-  
+
   console.log('Received summarize request with:', {
     apiEndpoint,
     model,
@@ -32,7 +35,7 @@ app.post('/api/summarize', async (req, res) => {
         apiUrl = `${apiEndpoint}/v1/chat/completions`;
     }
     console.log('Calling API endpoint:', apiUrl);
-    
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -70,7 +73,7 @@ app.post('/api/summarize', async (req, res) => {
 
 app.post('/api/chat', async (req, res) => {
   const { messages, apiEndpoint, apiKey, model } = req.body;
-  
+
   console.log('Received chat request with:', {
     apiEndpoint,
     model,
@@ -87,7 +90,7 @@ app.post('/api/chat', async (req, res) => {
         apiUrl = `${apiEndpoint}/v1/chat/completions`;
     }
     console.log('Calling API endpoint:', apiUrl);
-    
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -147,6 +150,51 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.join(__dirname, '../dist/index.html'))
   })
 }
+
+// MCP endpoints
+app.post('/api/mcp/discover', async (req, res) => {
+  const { server } = req.body;
+
+  console.log('Received MCP discovery request for server:', server);
+
+  if (!server || !server.endpoint) {
+    console.log('Invalid server configuration');
+    return res.status(400).json({ error: 'Invalid server configuration' });
+  }
+
+  try {
+    console.log(`Discovering tools from MCP server: ${server.name} at ${server.endpoint}`);
+    const toolsInfo = await discoverMcpServerTools(server);
+    console.log('Discovered tools:', toolsInfo);
+    res.json(toolsInfo);
+  } catch (error) {
+    console.error('Error discovering MCP tools:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/mcp/execute', async (req, res) => {
+  const { server, tool, parameters } = req.body;
+
+  console.log(`Received MCP tool execution request: ${tool}`);
+  console.log('Server:', server);
+  console.log('Parameters:', parameters);
+
+  if (!server || !server.endpoint || !tool) {
+    console.log('Invalid request parameters');
+    return res.status(400).json({ error: 'Invalid request parameters' });
+  }
+
+  try {
+    console.log(`Executing MCP tool ${tool} on server ${server.name}`);
+    const result = await executeMcpTool(server, tool, parameters);
+    console.log('Tool execution result:', result);
+    res.json(result);
+  } catch (error) {
+    console.error('Error executing MCP tool:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
