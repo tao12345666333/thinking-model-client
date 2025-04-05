@@ -33,22 +33,51 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [streamingChats, setStreamingChats] = useState(new Set());
 
   const activeProfile = profiles.find(p => p.id === activeProfileId) || profiles[0];
 
   const createNewChat = () => {
+    // 生成一个新的聊天ID，确保它是唯一的
+    const newChatId = Date.now();
+    console.log(`Creating new chat with ID: ${newChatId}`);
+
     const newChat = {
-      id: Date.now(),
+      id: newChatId,
       title: 'New Conversation',
       messages: []
     };
-    setChats([...chats, newChat]);
-    setCurrentChatId(newChat.id);
+
+    // 使用函数式更新来确保我们使用最新的聊天列表
+    setChats(prevChats => {
+      // 检查是否已经存在相同 ID 的聊天，避免重复
+      const chatExists = prevChats.some(chat => chat.id === newChatId);
+      if (chatExists) {
+        console.log(`Chat with ID ${newChatId} already exists, not creating duplicate`);
+        return prevChats;
+      }
+
+      console.log(`Adding new chat to chats array, current count: ${prevChats.length}, new count: ${prevChats.length + 1}`);
+      return [...prevChats, newChat];
+    });
+
+    // 设置当前聊天ID
+    setCurrentChatId(newChatId);
   };
 
   const deleteChat = (chatId) => {
-    setChats(chats.filter(chat => chat.id !== chatId));
+    console.log(`Deleting chat with ID: ${chatId}`);
+
+    // 使用函数式更新来确保我们使用最新的聊天列表
+    setChats(prevChats => {
+      const filteredChats = prevChats.filter(chat => chat.id !== chatId);
+      console.log(`Removed chat, previous count: ${prevChats.length}, new count: ${filteredChats.length}`);
+      return filteredChats;
+    });
+
+    // 如果删除的是当前活动的聊天，则将当前聊天ID设置为空
     if (currentChatId === chatId) {
+      console.log(`Deleted chat was the current active chat, setting currentChatId to null`);
       setCurrentChatId(null);
     }
   };
@@ -71,6 +100,29 @@ function App() {
     if (sidebarCollapsed) {
       setSidebarCollapsed(false);
     }
+  };
+
+  // 添加聊天到正在流式传输的列表
+  const addStreamingChat = (chatId) => {
+    setStreamingChats(prev => {
+      const newSet = new Set(prev);
+      newSet.add(chatId);
+      return newSet;
+    });
+  };
+
+  // 从正在流式传输的列表中移除聊天
+  const removeStreamingChat = (chatId) => {
+    setStreamingChats(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(chatId);
+      return newSet;
+    });
+  };
+
+  // 检查聊天是否正在流式传输
+  const isStreamingChat = (chatId) => {
+    return streamingChats.has(chatId);
   };
 
   const toggleProfileDropdown = () => {
@@ -145,6 +197,7 @@ function App() {
             onDeleteChat={deleteChat}
             onCreateNewChat={createNewChat}
             collapsed={sidebarCollapsed}
+            isStreamingChat={isStreamingChat}
           />
         </div>
 
@@ -169,6 +222,12 @@ function App() {
                   c.id === updatedChat.id ? updatedChat : c
                 ));
               }}
+              onCreateNewChat={createNewChat}
+              addStreamingChat={addStreamingChat}
+              removeStreamingChat={removeStreamingChat}
+              isStreamingChat={isStreamingChat}
+              allChats={chats}
+              currentChatId={currentChatId}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full p-5 text-center">

@@ -192,6 +192,15 @@ body {
     @apply bg-active text-primary;
   }
 
+  .chat-item.streaming {
+    @apply border-l-2 border-blue-500;
+  }
+
+  .streaming-dot {
+    @apply w-2 h-2 bg-blue-500 rounded-full;
+    animation: pulse 1.5s infinite;
+  }
+
   .delete-btn {
     @apply opacity-0 bg-transparent border-none text-lightest-text cursor-pointer text-xs transition-all duration-200 py-0.5 px-[5px];
   }
@@ -400,6 +409,51 @@ body {
 
   .send-button:disabled {
     @apply bg-slate-400 cursor-not-allowed opacity-70;
+  }
+
+  /* New chat button in chat window */
+  .new-chat-button {
+    @apply flex items-center justify-center;
+  }
+
+  .new-chat-button:hover {
+    @apply bg-green-600;
+  }
+
+  /* Floating new chat button */
+  .floating-new-chat {
+    @apply fixed bottom-20 right-6 bg-green-500 hover:bg-green-600 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-10;
+  }
+
+  @media (max-width: 768px) {
+    .floating-new-chat {
+      @apply bottom-24 right-4 w-10 h-10;
+    }
+  }
+
+  /* Streaming indicator */
+  .streaming-indicator {
+    @apply flex items-center justify-center py-2 px-4 my-4 bg-blue-50 rounded-md text-blue-600 w-max mx-auto;
+  }
+
+  .pulse-dot {
+    @apply w-2 h-2 bg-blue-500 rounded-full;
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+    }
+    70% {
+      transform: scale(1);
+      box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+    }
+    100% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
   }
 
   /* Loading cursor */

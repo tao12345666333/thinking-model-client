@@ -9,7 +9,13 @@
     "preview": "vite preview",
     "server": "node server/index.js",
     "start": "concurrently \"npm run dev\" \"npm run server\"",
-    "prod": "NODE_ENV=production node server/index.js"
+    "prod": "NODE_ENV=production node server/index.js",
+    "cy:open": "cypress open",
+    "cy:run": "cypress run",
+    "test:e2e": "start-server-and-test start http://localhost:5173 cy:run",
+    "test:simple": "cypress run --spec 'cypress/e2e/message-routing-simple.cy.js'",
+    "serve:build": "npm run build && http-server ./dist -p 5173",
+    "test:build": "start-server-and-test serve:build http://localhost:5173 'cypress run --spec cypress/e2e/message-routing-simple.cy.js'"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -20,12 +26,16 @@
     "react-markdown": "^10.0.0"
   },
   "devDependencies": {
+    "@testing-library/cypress": "^10.0.3",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.0.3",
     "autoprefixer": "^10.4.21",
     "concurrently": "^8.2.0",
+    "cypress": "^14.2.1",
+    "http-server": "^14.1.1",
     "postcss": "^8.5.3",
+    "start-server-and-test": "^2.0.11",
     "tailwindcss": "^3.3.5",
     "vite": "^4.4.5"
   }

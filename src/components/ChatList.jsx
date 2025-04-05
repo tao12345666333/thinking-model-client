@@ -1,6 +1,6 @@
 import React from 'react';
 
-function ChatList({ chats, currentChat, onSelectChat, onDeleteChat, onCreateNewChat, collapsed }) {
+function ChatList({ chats, currentChat, onSelectChat, onDeleteChat, onCreateNewChat, collapsed, isStreamingChat }) {
   return (
     <div className="chat-list">
       <button className="new-chat" onClick={onCreateNewChat}>
@@ -12,10 +12,15 @@ function ChatList({ chats, currentChat, onSelectChat, onDeleteChat, onCreateNewC
         chats.map(chat => (
           <div
             key={chat.id}
-            className={`chat-item ${chat.id === currentChat?.id ? 'active' : ''}`}
+            className={`chat-item ${chat.id === currentChat?.id ? 'active' : ''} ${isStreamingChat && typeof isStreamingChat === 'function' && isStreamingChat(chat.id) ? 'streaming' : ''}`}
             onClick={() => onSelectChat(chat.id)}
           >
-            <span>{chat.title}</span>
+            <div className="flex items-center gap-1">
+              {isStreamingChat && typeof isStreamingChat === 'function' && isStreamingChat(chat.id) && (
+                <span className="streaming-dot"></span>
+              )}
+              <span>{chat.title}</span>
+            </div>
             <button
               className="delete-btn"
               onClick={(e) => {
