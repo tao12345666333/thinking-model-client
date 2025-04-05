@@ -1,13 +1,15 @@
 import { useState } from 'react';
 
-function Settings({ 
-  profiles, 
-  activeProfileId, 
-  onSaveProfiles, 
-  onChangeActiveProfile, 
+function Settings({
+  profiles,
+  activeProfileId,
+  onSaveProfiles,
+  onChangeActiveProfile,
   onCloseSettings,
   onSaveSummarizationProfile,
-  summarizationProfile 
+  summarizationProfile,
+  mcpServers,
+  onSaveMcpServers
 }) {
   const [localProfiles, setLocalProfiles] = useState(profiles);
   const [localSummarizationProfile, setLocalSummarizationProfile] = useState(summarizationProfile || {
@@ -16,20 +18,29 @@ function Settings({
     apiKey: '',
     model: 'DeepSeek-R1'
   });
+  const [localMcpServers, setLocalMcpServers] = useState(mcpServers || []);
   const [editingProfileId, setEditingProfileId] = useState(activeProfileId);
+  const [editingMcpServerId, setEditingMcpServerId] = useState(null);
   const [isHintExpanded, setIsHintExpanded] = useState(false);
+  const [isMcpHintExpanded, setIsMcpHintExpanded] = useState(false);
 
   const editingProfile = localProfiles.find(p => p.id === editingProfileId) || localProfiles[0];
-  const editingSummarizationProfile = localSummarizationProfile;
+  const editingMcpServer = localMcpServers.find(s => s.id === editingMcpServerId) || null;
 
   const handleProfileChange = (updatedProfile) => {
-    setLocalProfiles(localProfiles.map(p => 
+    setLocalProfiles(localProfiles.map(p =>
       p.id === updatedProfile.id ? updatedProfile : p
     ));
   };
 
   const handleSummarizationProfileChange = (updatedProfile) => {
     setLocalSummarizationProfile(updatedProfile);
+  };
+
+  const handleMcpServerChange = (updatedServer) => {
+    setLocalMcpServers(localMcpServers.map(s =>
+      s.id === updatedServer.id ? updatedServer : s
+    ));
   };
 
   const handleAddProfile = () => {
@@ -41,7 +52,7 @@ function Settings({
       apiKey: '',
       model: 'DeepSeek-R1'
     };
-    
+
     const updatedProfiles = [...localProfiles, newProfile];
     setLocalProfiles(updatedProfiles);
     setEditingProfileId(newId);
@@ -55,9 +66,33 @@ function Settings({
 
     const updatedProfiles = localProfiles.filter(p => p.id !== profileId);
     setLocalProfiles(updatedProfiles);
-    
+
     if (editingProfileId === profileId) {
       setEditingProfileId(updatedProfiles[0].id);
+    }
+  };
+
+  const handleAddMcpServer = () => {
+    const newId = `mcp-server-${Date.now()}`;
+    const newServer = {
+      id: newId,
+      name: `MCP Server ${localMcpServers.length + 1}`,
+      endpoint: '',
+      authToken: '',
+      description: ''
+    };
+
+    const updatedServers = [...localMcpServers, newServer];
+    setLocalMcpServers(updatedServers);
+    setEditingMcpServerId(newId);
+  };
+
+  const handleDeleteMcpServer = (serverId) => {
+    const updatedServers = localMcpServers.filter(s => s.id !== serverId);
+    setLocalMcpServers(updatedServers);
+
+    if (editingMcpServerId === serverId) {
+      setEditingMcpServerId(updatedServers.length > 0 ? updatedServers[0].id : null);
     }
   };
 
@@ -65,6 +100,9 @@ function Settings({
     e.preventDefault();
     onSaveProfiles(localProfiles);
     onSaveSummarizationProfile(localSummarizationProfile);
+    if (onSaveMcpServers) {
+      onSaveMcpServers(localMcpServers);
+    }
     onChangeActiveProfile(editingProfileId);
     onCloseSettings();
   };
@@ -72,29 +110,29 @@ function Settings({
   return (
     <div className="settings-panel">
       <h2>Settings</h2>
-      
+
       <div className="profiles-section">
         <div className="profiles-header">
           <h3>Chat Profiles</h3>
-          <button 
-            type="button" 
+          <button
+            type="button"
             className="add-profile-button"
             onClick={handleAddProfile}
           >
             + Add Profile
           </button>
         </div>
-        
+
         <div className="profiles-list">
           {localProfiles.map(profile => (
-            <div 
-              key={profile.id} 
+            <div
+              key={profile.id}
               className={`profile-item ${profile.id === editingProfileId ? 'active' : ''}`}
               onClick={() => setEditingProfileId(profile.id)}
             >
               <span>{profile.name}</span>
               {localProfiles.length > 1 && (
-                <button 
+                <button
                   className="delete-profile-button"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -113,7 +151,7 @@ function Settings({
         {editingProfile && (
           <div className="current-profile-section">
             <h3>Edit Chat Profile: {editingProfile.name}</h3>
-            
+
             <div className="setting-item">
               <label>Profile Name:</label>
               <input
@@ -121,11 +159,12 @@ function Settings({
                 value={editingProfile.name}
                 onChange={(e) => handleProfileChange({
                   ...editingProfile,
-                    })}
+                  name: e.target.value
+                })}
                 placeholder="Enter profile name"
               />
             </div>
-            
+
             <div className="setting-item">
               <label>API Endpoint:</label>
               <input
@@ -138,8 +177,8 @@ function Settings({
                 placeholder="Enter API endpoint"
               />
               <div className="setting-hint">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="hint-toggle"
                   onClick={() => setIsHintExpanded(!isHintExpanded)}
                 >
@@ -155,7 +194,7 @@ function Settings({
                 </div>
               </div>
             </div>
-            
+
             <div className="setting-item">
               <label>API Key:</label>
               <input
@@ -168,7 +207,7 @@ function Settings({
                 placeholder="Enter your API key"
               />
             </div>
-            
+
             <div className="setting-item">
               <label>Model:</label>
               <input
@@ -184,7 +223,7 @@ function Settings({
           </div>
         )}
 
-        
+
       <div className="profiles-section">
         <h3>Summarization Profile</h3>
         <div className="current-profile-section">
@@ -200,7 +239,7 @@ function Settings({
               placeholder="Enter API endpoint"
             />
           </div>
-          
+
           <div className="setting-item">
             <label>API Key:</label>
             <input
@@ -213,7 +252,7 @@ function Settings({
               placeholder="Enter your API key"
             />
           </div>
-          
+
           <div className="setting-item">
             <label>Model:</label>
             <input
@@ -228,6 +267,122 @@ function Settings({
           </div>
         </div>
       </div>
+
+        {/* MCP Servers Section */}
+        <div className="profiles-section">
+          <div className="profiles-header">
+            <h3>MCP Servers</h3>
+            <button
+              type="button"
+              className="add-profile-button"
+              onClick={handleAddMcpServer}
+            >
+              + Add MCP Server
+            </button>
+          </div>
+
+          <div className="profiles-list">
+            {localMcpServers.map(server => (
+              <div
+                key={server.id}
+                className={`profile-item ${server.id === editingMcpServerId ? 'active' : ''}`}
+                onClick={() => setEditingMcpServerId(server.id)}
+              >
+                <span>{server.name}</span>
+                <button
+                  className="delete-profile-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteMcpServer(server.id);
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            {localMcpServers.length === 0 && (
+              <div className="empty-state">
+                <p>No MCP servers added yet. Add a server to enable Model Context Protocol capabilities.</p>
+              </div>
+            )}
+          </div>
+
+          {editingMcpServer && (
+            <div className="current-profile-section">
+              <h3>Edit MCP Server: {editingMcpServer.name}</h3>
+
+              <div className="setting-item">
+                <label>Server Name:</label>
+                <input
+                  type="text"
+                  value={editingMcpServer.name}
+                  onChange={(e) => handleMcpServerChange({
+                    ...editingMcpServer,
+                    name: e.target.value
+                  })}
+                  placeholder="Enter server name"
+                />
+              </div>
+
+              <div className="setting-item">
+                <label>Endpoint URL:</label>
+                <input
+                  type="text"
+                  value={editingMcpServer.endpoint}
+                  onChange={(e) => handleMcpServerChange({
+                    ...editingMcpServer,
+                    endpoint: e.target.value
+                  })}
+                  placeholder="Enter MCP server endpoint URL"
+                />
+              </div>
+
+              <div className="setting-item">
+                <label>Authentication Token:</label>
+                <input
+                  type="password"
+                  value={editingMcpServer.authToken}
+                  onChange={(e) => handleMcpServerChange({
+                    ...editingMcpServer,
+                    authToken: e.target.value
+                  })}
+                  placeholder="Enter authentication token (if required)"
+                />
+              </div>
+
+              <div className="setting-item">
+                <label>Description:</label>
+                <textarea
+                  value={editingMcpServer.description}
+                  onChange={(e) => handleMcpServerChange({
+                    ...editingMcpServer,
+                    description: e.target.value
+                  })}
+                  placeholder="Enter server description"
+                  rows="3"
+                />
+              </div>
+
+              <div className="setting-hint">
+                <button
+                  type="button"
+                  className="hint-toggle"
+                  onClick={() => setIsMcpHintExpanded(!isMcpHintExpanded)}
+                >
+                  {isMcpHintExpanded ? 'Hide' : 'Show'} MCP Information
+                </button>
+                <div className={`hint-content ${isMcpHintExpanded ? 'expanded' : ''}`}>
+                  <p>Model Context Protocol (MCP) allows AI models to access external tools and data sources.</p>
+                  <ul>
+                    <li>MCP servers provide specialized capabilities to AI models</li>
+                    <li>Each server can offer different tools like web search, data retrieval, etc.</li>
+                    <li>The model will automatically use available MCP servers when needed</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="settings-actions">
           <button type="submit" className="save-button">Save Settings</button>

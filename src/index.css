@@ -1,3 +1,6 @@
+/* Import MCP styles */
+@import './styles/mcp.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

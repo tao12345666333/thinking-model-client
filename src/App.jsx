@@ -23,6 +23,8 @@ function App() {
     model: 'DeepSeek-R1'
   });
 
+  const [mcpServers, setMcpServers] = useLocalStorage('mcpServers', []);
+
   const [activeProfileId, setActiveProfileId] = useLocalStorage('activeProfileId', 'default');
 
   const [chats, setChats] = useLocalStorage('chats', []);
@@ -228,6 +230,7 @@ function App() {
               isStreamingChat={isStreamingChat}
               allChats={chats}
               currentChatId={currentChatId}
+              mcpServers={mcpServers}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full p-5 text-center">
@@ -262,6 +265,8 @@ function App() {
               }}
               onSaveSummarizationProfile={setSummarizationProfile}
               summarizationProfile={summarizationProfile}
+              mcpServers={mcpServers}
+              onSaveMcpServers={setMcpServers}
               onChangeActiveProfile={setActiveProfileId}
               onCloseSettings={() => setShowSettings(false)}
             />

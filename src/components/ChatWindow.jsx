@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import useMcp from '../hooks/useMcp';
 
 function ChatWindow({
   chat,
@@ -11,7 +12,8 @@ function ChatWindow({
   removeStreamingChat,
   isStreamingChat,
   allChats,
-  currentChatId
+  currentChatId,
+  mcpServers
 }) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -19,7 +21,54 @@ function ChatWindow({
   const [partialResponse, setPartialResponse] = useState('');
   const [streamController, setStreamController] = useState(null);
   const [copiedMessageId, setCopiedMessageId] = useState(null);
+  const [showMcpTools, setShowMcpTools] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Initialize MCP hook
+  const { getAllTools, executeTool } = useMcp(mcpServers);
+
+  // 检测是否需要使用MCP工具来回答用户的问题
+  const shouldUseMcpTool = (userInput) => {
+    // 如果没有可用的MCP工具，则不使用
+    const availableTools = getAllTools();
+    if (!availableTools || availableTools.length === 0) {
+      return false;
+    }
+
+    // 定义可能需要使用MCP工具的问题类型
+    const informationQuestions = [
+      'what is', 'who is', 'tell me about', 'how to', 'where is',
+      'when was', 'why is', 'how does', 'what are', 'can you explain',
+      'information about', 'details on', 'facts about', 'history of',
+      'latest news', 'current events', 'recent developments'
+    ];
+
+    const weatherQuestions = [
+      'weather', 'temperature', 'forecast', 'how hot', 'how cold',
+      'is it raining', 'is it sunny', 'will it rain', 'climate'
+    ];
+
+    const calculationQuestions = [
+      'calculate', 'compute', 'solve', 'what is', 'evaluate',
+      'plus', 'minus', 'times', 'divided by', 'square root',
+      'percentage', 'factorial', 'exponent', 'logarithm'
+    ];
+
+    // 检查用户输入是否包含这些问题类型的关键词
+    const input = userInput.toLowerCase();
+
+    // 检查是否是信息查询类型的问题
+    const isInformationQuestion = informationQuestions.some(keyword => input.includes(keyword.toLowerCase()));
+
+    // 检查是否是天气查询类型的问题
+    const isWeatherQuestion = weatherQuestions.some(keyword => input.includes(keyword.toLowerCase()));
+
+    // 检查是否是计算类型的问题
+    const isCalculationQuestion = calculationQuestions.some(keyword => input.includes(keyword.toLowerCase()));
+
+    // 如果是任何一种类型的问题，则可能需要使用MCP工具
+    return isInformationQuestion || isWeatherQuestion || isCalculationQuestion;
+  };
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -53,6 +102,184 @@ function ChatWindow({
     setCollapsedThinks(newCollapsed);
   };
 
+  // Handle MCP tool execution
+  const handleExecuteMcpTool = async (serverId, toolName, parameters) => {
+    try {
+      setIsLoading(true);
+      const result = await executeTool(serverId, toolName, parameters);
+
+      // Add the tool execution and result to the chat
+      const toolMessage = {
+        role: 'user',
+        content: `Executing MCP tool: ${toolName}`,
+        timestamp: Date.now(),
+        mcpTool: {
+          serverId,
+          toolName,
+          parameters
+        }
+      };
+
+      const resultMessage = {
+        role: 'assistant',
+        content: JSON.stringify(result, null, 2),
+        timestamp: Date.now(),
+        mcpResult: true
+      };
+
+      const updatedChat = {
+        ...chat,
+        messages: [...chat.messages, toolMessage, resultMessage]
+      };
+
+      onUpdateChat(updatedChat);
+      setShowMcpTools(false);
+    } catch (error) {
+      console.error('Error executing MCP tool:', error);
+
+      // Add error message to chat
+      const errorMessage = {
+        role: 'assistant',
+        content: `Error executing MCP tool: ${error.message}`,
+        timestamp: Date.now(),
+        error: true
+      };
+
+      const updatedChat = {
+        ...chat,
+        messages: [...chat.messages, errorMessage]
+      };
+
+      onUpdateChat(updatedChat);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 检测用户输入是否需要使用MCP工具
+  const detectMcpToolRequest = (userInput) => {
+    console.log('Detecting MCP tool request for:', userInput);
+    // 获取所有可用的MCP工具
+    const availableTools = getAllTools();
+    if (!availableTools || availableTools.length === 0) {
+      return null;
+    }
+
+    // 定义工具的意图模式和关键词
+    const toolPatterns = {
+      'web-search': {
+        intents: ['search', 'find', 'look up', 'google', 'information about', 'tell me about', 'what is', 'who is'],
+        paramExtractor: (input) => {
+          // 尝试不同的模式来提取查询
+          const patterns = [
+            /search\s+for\s+([\w\s\d\-\.,?!]+)/i,
+            /search\s+([\w\s\d\-\.,?!]+)/i,
+            /find\s+([\w\s\d\-\.,?!]+)/i,
+            /look\s+up\s+([\w\s\d\-\.,?!]+)/i,
+            /information\s+about\s+([\w\s\d\-\.,?!]+)/i,
+            /tell\s+me\s+about\s+([\w\s\d\-\.,?!]+)/i,
+            /what\s+is\s+([\w\s\d\-\.,?!]+)/i,
+            /who\s+is\s+([\w\s\d\-\.,?!]+)/i
+          ];
+
+          for (const pattern of patterns) {
+            const match = input.match(pattern);
+            if (match && match[1]) {
+              return { query: match[1].trim() };
+            }
+          }
+
+          // 如果没有匹配到特定模式，使用整个输入作为查询
+          return { query: input.trim() };
+        }
+      },
+      'weather': {
+        intents: ['weather', 'temperature', 'forecast', 'how hot', 'how cold', 'raining', 'sunny'],
+        paramExtractor: (input) => {
+          // 尝试不同的模式来提取位置
+          const patterns = [
+            /weather\s+in\s+([\w\s\d\-\.,]+)/i,
+            /temperature\s+in\s+([\w\s\d\-\.,]+)/i,
+            /forecast\s+for\s+([\w\s\d\-\.,]+)/i,
+            /how\s+(?:hot|cold)\s+is\s+it\s+in\s+([\w\s\d\-\.,]+)/i,
+            /is\s+it\s+(?:raining|sunny)\s+in\s+([\w\s\d\-\.,]+)/i
+          ];
+
+          for (const pattern of patterns) {
+            const match = input.match(pattern);
+            if (match && match[1]) {
+              return { location: match[1].trim() };
+            }
+          }
+
+          // 如果没有指定位置，使用默认位置
+          return { location: 'current location' };
+        }
+      },
+      'calculator': {
+        intents: ['calculate', 'compute', 'math', 'solve', 'what is', 'evaluate'],
+        paramExtractor: (input) => {
+          // 尝试不同的模式来提取表达式
+          const patterns = [
+            /calculate\s+([\d\+\-\*\/\(\)\s\.]+)/i,
+            /compute\s+([\d\+\-\*\/\(\)\s\.]+)/i,
+            /solve\s+([\d\+\-\*\/\(\)\s\.]+)/i,
+            /what\s+is\s+([\d\+\-\*\/\(\)\s\.]+)/i,
+            /evaluate\s+([\d\+\-\*\/\(\)\s\.]+)/i
+          ];
+
+          for (const pattern of patterns) {
+            const match = input.match(pattern);
+            if (match && match[1]) {
+              return { expression: match[1].trim() };
+            }
+          }
+
+          // 如果没有匹配到特定模式，尝试提取数学表达式
+          const mathExpressionMatch = input.match(/([\d\+\-\*\/\(\)\s\.]+)/i);
+          if (mathExpressionMatch && mathExpressionMatch[1]) {
+            return { expression: mathExpressionMatch[1].trim() };
+          }
+
+          return { expression: '' };
+        }
+      }
+    };
+
+    // 检查每个工具
+    for (const tool of availableTools) {
+      const toolPattern = toolPatterns[tool.name];
+
+      // 如果有这个工具的模式定义
+      if (toolPattern) {
+        // 检查是否匹配任何意图
+        const matchesIntent = toolPattern.intents.some(intent =>
+          userInput.toLowerCase().includes(intent.toLowerCase())
+        );
+
+        if (matchesIntent) {
+          // 提取参数
+          const parameters = toolPattern.paramExtractor(userInput);
+
+          return {
+            tool,
+            parameters
+          };
+        }
+      } else {
+        // 如果没有定义特定模式，使用简单的关键词匹配
+        if (userInput.toLowerCase().includes(tool.name.toLowerCase())) {
+          return {
+            tool,
+            parameters: {}
+          };
+        }
+      }
+    }
+
+    return null;
+  };
+
   const handleSendMessage = async () => {
     if (!input.trim()) return;
     if (!chat || !chat.messages) return; // Add safety check
@@ -62,6 +289,145 @@ function ChatWindow({
     const userInput = input; // 保存用户输入，以便在流结束后仍能访问
     console.log(`Starting message send for chat ${currentChatID}`);
 
+    // 检测是否需要使用MCP工具
+    let toolRequest = detectMcpToolRequest(userInput);
+
+    // 如果没有直接检测到工具请求，但问题类型可能需要使用MCP工具
+    if (!toolRequest && shouldUseMcpTool(userInput)) {
+      console.log('Question might benefit from MCP tools, trying to find a suitable tool...');
+
+      // 获取所有可用的工具
+      const availableTools = getAllTools();
+
+      // 尝试找到最适合的工具
+      if (userInput.toLowerCase().includes('weather') ||
+          userInput.toLowerCase().includes('temperature') ||
+          userInput.toLowerCase().includes('forecast')) {
+        // 天气相关问题
+        const weatherTool = availableTools.find(tool => tool.name === 'weather');
+        if (weatherTool) {
+          // 提取位置
+          const locationMatch = userInput.match(/(?:in|at|for)\s+([\w\s,]+)(?:\?|\.|$)/i);
+          const location = locationMatch ? locationMatch[1].trim() : 'current location';
+
+          toolRequest = {
+            tool: weatherTool,
+            parameters: { location }
+          };
+        }
+      } else if (userInput.match(/[\d\+\-\*\/\(\)]/)) {
+        // 包含数学表达式
+        const calculatorTool = availableTools.find(tool => tool.name === 'calculator');
+        if (calculatorTool) {
+          const expressionMatch = userInput.match(/([\d\+\-\*\/\(\)\s\.]+)/i);
+          const expression = expressionMatch ? expressionMatch[1].trim() : '';
+
+          toolRequest = {
+            tool: calculatorTool,
+            parameters: { expression }
+          };
+        }
+      } else {
+        // 其他信息查询问题
+        const searchTool = availableTools.find(tool => tool.name === 'web-search');
+        if (searchTool) {
+          toolRequest = {
+            tool: searchTool,
+            parameters: { query: userInput }
+          };
+        }
+      }
+    }
+
+    // 如果检测到工具请求，自动使用相应的工具
+    if (toolRequest) {
+      console.log(`Detected MCP tool request: ${toolRequest.tool.name}`);
+      console.log(`Parameters: `, toolRequest.parameters);
+
+      // 添加用户消息
+      const newMessage = {
+        role: 'user',
+        content: userInput,
+        timestamp: Date.now()
+      };
+
+      const updatedChat = {
+        ...chat,
+        messages: [...chat.messages, newMessage]
+      };
+      onUpdateChat(updatedChat);
+      setInput('');
+
+      // 执行工具
+      try {
+        setIsLoading(true);
+        const result = await executeTool(toolRequest.tool.serverId, toolRequest.tool.name, toolRequest.parameters);
+
+        // 添加工具执行结果消息
+        let formattedResult = '';
+
+        // 根据工具类型格式化结果
+        if (toolRequest.tool.name === 'web-search') {
+          formattedResult = `**Search Results:**\n\n`;
+          if (result.links && Array.isArray(result.links)) {
+            result.links.forEach((link, index) => {
+              formattedResult += `${index + 1}. [${link.title}](${link.url})\n`;
+            });
+          } else {
+            formattedResult += result.result || JSON.stringify(result, null, 2);
+          }
+        } else if (toolRequest.tool.name === 'weather') {
+          formattedResult = `**Weather in ${result.location || 'the requested location'}:**\n\n`;
+          formattedResult += `- Temperature: ${result.temperature || 'N/A'}\n`;
+          formattedResult += `- Condition: ${result.condition || 'N/A'}\n`;
+          formattedResult += `- Humidity: ${result.humidity || 'N/A'}\n`;
+        } else if (toolRequest.tool.name === 'calculator') {
+          formattedResult = `**Calculation Result:**\n\n`;
+          formattedResult += `Expression: ${result.expression || toolRequest.parameters.expression}\n`;
+          formattedResult += `Result: ${result.result !== undefined ? result.result : 'Error in calculation'}\n`;
+        } else {
+          // 其他工具类型的默认格式
+          formattedResult = JSON.stringify(result, null, 2);
+        }
+
+        const toolMessage = {
+          role: 'assistant',
+          content: `I used the ${toolRequest.tool.name} tool to help answer your question.\n\n${formattedResult}`,
+          timestamp: Date.now(),
+          mcpResult: true
+        };
+
+        const finalChat = {
+          ...updatedChat,
+          messages: [...updatedChat.messages, toolMessage]
+        };
+
+        onUpdateChat(finalChat);
+      } catch (error) {
+        console.error('Error executing MCP tool:', error);
+
+        // 添加错误消息
+        const errorMessage = {
+          role: 'assistant',
+          content: `I tried to use the ${toolRequest.tool.name} tool, but encountered an error: ${error.message}`,
+          timestamp: Date.now(),
+          error: true
+        };
+
+        const errorChat = {
+          ...updatedChat,
+          messages: [...updatedChat.messages, errorMessage]
+        };
+
+        onUpdateChat(errorChat);
+      } finally {
+        setIsLoading(false);
+      }
+
+      return;
+    }
+
+    // 如果不是工具请求，正常发送消息
     // Cancel any ongoing stream for this chat
     if (streamController) {
       streamController.abort();
@@ -341,6 +707,9 @@ function ChatWindow({
     });
   };
 
+  // Get all available MCP tools
+  const mcpTools = getAllTools();
+
   return (
     <div className="chat-window relative">
       {/* Floating New Chat button */}
@@ -440,6 +809,16 @@ function ChatWindow({
 
       <div className="chat-input">
         <div className="flex items-center gap-2 w-full">
+          {mcpTools.length > 0 && (
+            <button
+              className="mcp-tools-button"
+              onClick={() => setShowMcpTools(!showMcpTools)}
+              title="MCP Tools"
+            >
+              🧰
+            </button>
+          )}
+
           <textarea
             className="message-input"
             value={input}
@@ -460,9 +839,45 @@ function ChatWindow({
             >
               Send
             </button>
-
           </div>
         </div>
+
+        {showMcpTools && (
+          <div className="mcp-tools-panel">
+            <h3>Available MCP Tools</h3>
+            <div className="mcp-tools-list">
+              {mcpTools.map((tool, index) => (
+                <div key={`${tool.serverId}-${tool.name}-${index}`} className="mcp-tool-item">
+                  <div className="mcp-tool-header">
+                    <strong>{tool.name}</strong>
+                    <span className="mcp-server-name">({tool.serverName})</span>
+                  </div>
+                  <p className="mcp-tool-description">{tool.description}</p>
+                  <button
+                    className="mcp-tool-execute-button"
+                    onClick={() => {
+                      // For simplicity, we're not implementing parameter input UI
+                      // In a real implementation, you would show a form for parameters
+                      const parameters = {};
+                      handleExecuteMcpTool(tool.serverId, tool.name, parameters);
+                    }}
+                  >
+                    Execute
+                  </button>
+                </div>
+              ))}
+              {mcpTools.length === 0 && (
+                <p className="no-tools-message">No MCP tools available. Add MCP servers in settings.</p>
+              )}
+            </div>
+            <button
+              className="close-mcp-tools-button"
+              onClick={() => setShowMcpTools(false)}
+            >
+              Close
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
