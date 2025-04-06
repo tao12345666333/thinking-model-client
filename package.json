@@ -18,12 +18,15 @@
     "test:build": "start-server-and-test serve:build http://localhost:5173 'cypress run --spec cypress/e2e/message-routing-simple.cy.js'"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0",
     "cors": "^2.8.5",
+    "eventsource": "^3.0.6",
     "express": "^4.18.2",
     "node-fetch": "^3.3.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-markdown": "^10.0.0"
+    "react-markdown": "^10.0.0",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@testing-library/cypress": "^10.0.3",

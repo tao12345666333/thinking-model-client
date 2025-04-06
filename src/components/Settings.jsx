@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 function Settings({
   profiles,
@@ -19,13 +19,63 @@ function Settings({
     model: 'DeepSeek-R1'
   });
   const [localMcpServers, setLocalMcpServers] = useState(mcpServers || []);
+
+  // 当 mcpServers 变化时更新本地状态
+  useEffect(() => {
+    console.log('mcpServers changed:', mcpServers);
+    setLocalMcpServers(mcpServers || []);
+  }, [mcpServers]);
   const [editingProfileId, setEditingProfileId] = useState(activeProfileId);
   const [editingMcpServerId, setEditingMcpServerId] = useState(null);
   const [isHintExpanded, setIsHintExpanded] = useState(false);
   const [isMcpHintExpanded, setIsMcpHintExpanded] = useState(false);
+  const [builtInServers, setBuiltInServers] = useState([]);
+  const [isLoadingServers, setIsLoadingServers] = useState(false);
+  const [serverTestResult, setServerTestResult] = useState(null);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
 
   const editingProfile = localProfiles.find(p => p.id === editingProfileId) || localProfiles[0];
   const editingMcpServer = localMcpServers.find(s => s.id === editingMcpServerId) || null;
+
+  // 获取可用的内置 MCP 服务器
+  useEffect(() => {
+    const fetchBuiltInServers = async () => {
+      setIsLoadingServers(true);
+      try {
+        console.log('Fetching built-in MCP servers...');
+        const response = await fetch('/api/mcp/servers/available', {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Received built-in MCP servers:', data);
+          setBuiltInServers(data.servers || []);
+        } else {
+          console.error('Failed to fetch built-in MCP servers:', response.status, response.statusText);
+          // 尝试读取错误消息
+          const errorText = await response.text();
+          console.error('Error details:', errorText);
+        }
+      } catch (error) {
+        console.error('Error fetching built-in MCP servers:', error);
+      } finally {
+        setIsLoadingServers(false);
+      }
+    };
+
+    fetchBuiltInServers();
+
+    // 每 5 秒刷新一次服务器状态
+    const intervalId = setInterval(fetchBuiltInServers, 5000);
+
+    // 清理定时器
+    return () => clearInterval(intervalId);
+  }, []);
 
   const handleProfileChange = (updatedProfile) => {
     setLocalProfiles(localProfiles.map(p =>
@@ -72,6 +122,143 @@ function Settings({
     }
   };
 
+  // 测试 MCP 服务器连接
+  const testMcpServerConnection = async (endpoint, authToken) => {
+    if (!endpoint) return;
+
+    setIsTestingConnection(true);
+    setServerTestResult(null);
+
+    try {
+      const response = await fetch('/api/mcp/servers/test-connection', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ endpoint, authToken })
+      });
+
+      const result = await response.json();
+      setServerTestResult(result);
+      return result.success;
+    } catch (error) {
+      console.error('Error testing MCP server connection:', error);
+      setServerTestResult({
+        success: false,
+        message: `Connection error: ${error.message}`,
+        error: error.message
+      });
+      return false;
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
+  // 启动内置 MCP 服务器
+  const startBuiltInServer = async (serverId) => {
+    try {
+      const response = await fetch('/api/mcp/servers/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ serverId })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // 检查是否已经添加了这个服务器
+        const existingServer = localMcpServers.find(s =>
+          s.isBuiltIn && s.builtInId === serverId
+        );
+
+        if (!existingServer) {
+          // 添加到本地 MCP 服务器列表
+          const builtInServer = builtInServers.find(s => s.id === serverId);
+          const newServer = {
+            id: `built-in-${serverId}-${Date.now()}`,
+            name: builtInServer ? builtInServer.name : `Built-in Server ${serverId}`,
+            endpoint: result.endpoint,
+            authToken: '',
+            description: builtInServer ? builtInServer.description : 'Built-in MCP server',
+            isBuiltIn: true,
+            builtInId: serverId,
+            isRunning: true
+          };
+
+          const updatedServers = [...localMcpServers, newServer];
+          setLocalMcpServers(updatedServers);
+          setEditingMcpServerId(newServer.id);
+        } else {
+          // 更新现有服务器的端点
+          const updatedServers = localMcpServers.map(s =>
+            s.id === existingServer.id
+              ? { ...s, endpoint: result.endpoint, isRunning: true }
+              : s
+          );
+          setLocalMcpServers(updatedServers);
+          setEditingMcpServerId(existingServer.id);
+        }
+
+        // 刷新内置服务器列表
+        const response = await fetch('/api/mcp/servers/available');
+        if (response.ok) {
+          const data = await response.json();
+          setBuiltInServers(data.servers || []);
+        }
+
+        return true;
+      } else {
+        console.error('Failed to start built-in MCP server:', result.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error starting built-in MCP server:', error);
+      return false;
+    }
+  };
+
+  // 停止内置 MCP 服务器
+  const stopBuiltInServer = async (serverId) => {
+    try {
+      const response = await fetch('/api/mcp/servers/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ serverId })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // 更新内置服务器的状态
+        const updatedServers = localMcpServers.map(s =>
+          s.isBuiltIn && s.builtInId === serverId
+            ? { ...s, isRunning: false }
+            : s
+        );
+        setLocalMcpServers(updatedServers);
+
+        // 刷新内置服务器列表
+        const response = await fetch('/api/mcp/servers/available');
+        if (response.ok) {
+          const data = await response.json();
+          setBuiltInServers(data.servers || []);
+        }
+
+        return true;
+      } else {
+        console.error('Failed to stop built-in MCP server:', result.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error stopping built-in MCP server:', error);
+      return false;
+    }
+  };
+
   const handleAddMcpServer = () => {
     const newId = `mcp-server-${Date.now()}`;
     const newServer = {
@@ -79,7 +266,8 @@ function Settings({
       name: `MCP Server ${localMcpServers.length + 1}`,
       endpoint: '',
       authToken: '',
-      description: ''
+      description: '',
+      isBuiltIn: false
     };
 
     const updatedServers = [...localMcpServers, newServer];
@@ -281,14 +469,91 @@ function Settings({
             </button>
           </div>
 
+          {/* Built-in MCP Servers */}
+          <div className="built-in-servers-section">
+            <h4>Built-in MCP Servers</h4>
+            <div className="built-in-servers-list">
+              {isLoadingServers ? (
+                <div className="loading-indicator">Loading built-in servers...</div>
+              ) : builtInServers.length > 0 ? (
+                builtInServers.map(server => {
+                  // 检查这个内置服务器是否已经添加到用户的服务器列表中
+                  const isAdded = localMcpServers.some(s => s.isBuiltIn && s.builtInId === server.id);
+
+                  return (
+                    <div key={server.id} className="built-in-server-item">
+                      <div className="server-info">
+                        <span className="server-name">{server.name}</span>
+                        <span className={`server-status ${server.isRunning ? 'running' : 'stopped'}`}>
+                          {server.isRunning ? 'Running' : 'Stopped'}
+                        </span>
+                      </div>
+                      <div className="server-actions">
+                        {isAdded ? (
+                          <button
+                            className="server-action-button"
+                            onClick={() => {
+                              const addedServer = localMcpServers.find(s => s.isBuiltIn && s.builtInId === server.id);
+                              if (addedServer) {
+                                setEditingMcpServerId(addedServer.id);
+                              }
+                            }}
+                          >
+                            View
+                          </button>
+                        ) : (
+                          <button
+                            className="server-action-button"
+                            onClick={() => startBuiltInServer(server.id)}
+                            disabled={server.isRunning}
+                          >
+                            Add & Start
+                          </button>
+                        )}
+
+                        {server.isRunning ? (
+                          <button
+                            className="server-action-button stop"
+                            onClick={() => stopBuiltInServer(server.id)}
+                          >
+                            Stop
+                          </button>
+                        ) : (
+                          <button
+                            className="server-action-button start"
+                            onClick={() => startBuiltInServer(server.id)}
+                          >
+                            Start
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="empty-state">
+                  <p>No built-in MCP servers available.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* User-added MCP Servers */}
+          <h4>Your MCP Servers</h4>
           <div className="profiles-list">
             {localMcpServers.map(server => (
               <div
                 key={server.id}
-                className={`profile-item ${server.id === editingMcpServerId ? 'active' : ''}`}
+                className={`profile-item ${server.id === editingMcpServerId ? 'active' : ''} ${server.isBuiltIn && server.isRunning ? 'running' : ''}`}
                 onClick={() => setEditingMcpServerId(server.id)}
               >
                 <span>{server.name}</span>
+                {server.isBuiltIn && server.isRunning && (
+                  <span className="server-badge running">Running</span>
+                )}
+                {server.isBuiltIn && !server.isRunning && (
+                  <span className="server-badge stopped">Stopped</span>
+                )}
                 <button
                   className="delete-profile-button"
                   onClick={(e) => {
@@ -321,20 +586,47 @@ function Settings({
                     name: e.target.value
                   })}
                   placeholder="Enter server name"
+                  disabled={editingMcpServer.isBuiltIn}
                 />
               </div>
 
               <div className="setting-item">
                 <label>Endpoint URL:</label>
-                <input
-                  type="text"
-                  value={editingMcpServer.endpoint}
-                  onChange={(e) => handleMcpServerChange({
-                    ...editingMcpServer,
-                    endpoint: e.target.value
-                  })}
-                  placeholder="Enter MCP server endpoint URL"
-                />
+                <div className="input-with-button">
+                  <input
+                    type="text"
+                    value={editingMcpServer.endpoint}
+                    onChange={(e) => handleMcpServerChange({
+                      ...editingMcpServer,
+                      endpoint: e.target.value
+                    })}
+                    placeholder="Enter MCP server endpoint URL"
+                    disabled={editingMcpServer.isBuiltIn}
+                  />
+                  <button
+                    type="button"
+                    className="test-connection-button"
+                    onClick={() => testMcpServerConnection(editingMcpServer.endpoint, editingMcpServer.authToken)}
+                    disabled={!editingMcpServer.endpoint || isTestingConnection}
+                  >
+                    {isTestingConnection ? 'Testing...' : 'Test Connection'}
+                  </button>
+                </div>
+                {serverTestResult && (
+                  <div className={`connection-test-result ${serverTestResult.success ? 'success' : 'error'}`}>
+                    {serverTestResult.message}
+                    {serverTestResult.success && serverTestResult.tools && (
+                      <div className="available-tools">
+                        <p>Available tools: {serverTestResult.tools.length}</p>
+                        <ul>
+                          {serverTestResult.tools.map((tool, index) => (
+                            <li key={index}>{tool.name} - {tool.description}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="setting-item">
@@ -347,6 +639,7 @@ function Settings({
                     authToken: e.target.value
                   })}
                   placeholder="Enter authentication token (if required)"
+                  disabled={editingMcpServer.isBuiltIn}
                 />
               </div>
 
@@ -360,8 +653,37 @@ function Settings({
                   })}
                   placeholder="Enter server description"
                   rows="3"
+                  disabled={editingMcpServer.isBuiltIn}
                 />
               </div>
+
+              {editingMcpServer.isBuiltIn && (
+                <div className="built-in-server-controls">
+                  <p className="built-in-server-note">
+                    This is a built-in MCP server managed by the application.
+                    {editingMcpServer.isRunning
+                      ? ' It is currently running.'
+                      : ' It is currently stopped.'}
+                  </p>
+                  {editingMcpServer.isRunning ? (
+                    <button
+                      type="button"
+                      className="server-control-button stop"
+                      onClick={() => stopBuiltInServer(editingMcpServer.builtInId)}
+                    >
+                      Stop Server
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="server-control-button start"
+                      onClick={() => startBuiltInServer(editingMcpServer.builtInId)}
+                    >
+                      Start Server
+                    </button>
+                  )}
+                </div>
+              )}
 
               <div className="setting-hint">
                 <button

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import ChatList from './components/ChatList';
 import ChatWindow from './components/ChatWindow';
 import Settings from './components/Settings';
@@ -23,7 +23,13 @@ function App() {
     model: 'DeepSeek-R1'
   });
 
-  const [mcpServers, setMcpServers] = useLocalStorage('mcpServers', []);
+  const [mcpServers, setMcpServers] = useLocalStorage('mcpServers', [], { disableCache: false });
+
+  // 过滤出正在运行的 MCP 服务器
+  const activeMcpServers = useMemo(() => {
+    console.log('Filtering active MCP servers:', mcpServers);
+    return mcpServers.filter(server => !server.isBuiltIn || server.isRunning);
+  }, [mcpServers]);
 
   const [activeProfileId, setActiveProfileId] = useLocalStorage('activeProfileId', 'default');
 
@@ -230,7 +236,7 @@ function App() {
               isStreamingChat={isStreamingChat}
               allChats={chats}
               currentChatId={currentChatId}
-              mcpServers={mcpServers}
+              mcpServers={activeMcpServers}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full p-5 text-center">

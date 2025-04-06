@@ -54,6 +54,12 @@ function ChatWindow({
       'percentage', 'factorial', 'exponent', 'logarithm'
     ];
 
+    const timeQuestions = [
+      'current time', 'time now', 'what time', 'current date', 'today date', 'what date',
+      'time in', 'time at', 'time zone', 'timezone', 'convert time', 'time difference',
+      'date difference', 'days between', 'time between', 'how long since', 'how many days'
+    ];
+
     // 检查用户输入是否包含这些问题类型的关键词
     const input = userInput.toLowerCase();
 
@@ -66,8 +72,14 @@ function ChatWindow({
     // 检查是否是计算类型的问题
     const isCalculationQuestion = calculationQuestions.some(keyword => input.includes(keyword.toLowerCase()));
 
+    // 检查是否是时间相关的问题
+    const isTimeQuestion = timeQuestions.some(keyword => input.includes(keyword.toLowerCase()));
+
+    // 检查是否包含时区代码
+    const containsTimezoneCode = /\b([A-Z]{3,4}(?:-[A-Za-z]+)?)\b/i.test(input);
+
     // 如果是任何一种类型的问题，则可能需要使用MCP工具
-    return isInformationQuestion || isWeatherQuestion || isCalculationQuestion;
+    return isInformationQuestion || isWeatherQuestion || isCalculationQuestion || isTimeQuestion || containsTimezoneCode;
   };
 
   // Scroll to bottom when messages change
@@ -243,6 +255,114 @@ function ChatWindow({
 
           return { expression: '' };
         }
+      },
+      'get-current-time': {
+        intents: ['current time', 'time now', 'what time', 'current date', 'today date', 'what date'],
+        paramExtractor: (input) => {
+          // 尝试提取时区
+          const timezonePatterns = [
+            /(?:in|at)\s+([A-Z]{3,4}(?:-[A-Za-z]+)?)/i,
+            /([A-Z]{3,4}(?:-[A-Za-z]+)?)\s+(?:time|timezone)/i
+          ];
+
+          for (const pattern of timezonePatterns) {
+            const match = input.match(pattern);
+            if (match && match[1]) {
+              return { timezone: match[1].toUpperCase() };
+            }
+          }
+
+          // 如果没有指定时区，使用 UTC
+          return { timezone: 'UTC' };
+        }
+      },
+      'convert-timezone': {
+        intents: ['convert time', 'timezone conversion', 'time difference', 'what time is it in', 'convert timezone'],
+        paramExtractor: (input) => {
+          // 尝试提取源时区和目标时区
+          const fromTimezonePattern = /from\s+([A-Z]{3,4}(?:-[A-Za-z]+)?)/i;
+          const toTimezonePattern = /to\s+([A-Z]{3,4}(?:-[A-Za-z]+)?)/i;
+
+          // 尝试提取时间
+          const timePattern = /(\d{4}-\d{2}-\d{2}(?:T|\s+)\d{2}:\d{2}(?::\d{2})?)/i;
+
+          const params = {};
+
+          // 提取时间
+          const timeMatch = input.match(timePattern);
+          if (timeMatch && timeMatch[1]) {
+            params.time = timeMatch[1];
+          }
+
+          // 提取源时区
+          const fromMatch = input.match(fromTimezonePattern);
+          if (fromMatch && fromMatch[1]) {
+            params.fromTimezone = fromMatch[1].toUpperCase();
+          } else {
+            // 如果没有指定源时区，使用 UTC
+            params.fromTimezone = 'UTC';
+          }
+
+          // 提取目标时区
+          const toMatch = input.match(toTimezonePattern);
+          if (toMatch && toMatch[1]) {
+            params.toTimezone = toMatch[1].toUpperCase();
+          } else {
+            // 尝试从“在...”的形式中提取目标时区
+            const inTimezonePattern = /(?:in|at)\s+([A-Z]{3,4}(?:-[A-Za-z]+)?)/i;
+            const inMatch = input.match(inTimezonePattern);
+            if (inMatch && inMatch[1]) {
+              params.toTimezone = inMatch[1].toUpperCase();
+            }
+          }
+
+          return params;
+        }
+      },
+      'calculate-date-difference': {
+        intents: ['date difference', 'days between', 'time between', 'how long since', 'how many days', 'date calculation'],
+        paramExtractor: (input) => {
+          // 尝试提取两个日期
+          const datePattern = /(\d{4}-\d{2}-\d{2})/g;
+          const dates = [];
+          let match;
+
+          while ((match = datePattern.exec(input)) !== null) {
+            dates.push(match[1]);
+          }
+
+          if (dates.length >= 2) {
+            return {
+              startDate: dates[0],
+              endDate: dates[1]
+            };
+          } else if (dates.length === 1) {
+            return {
+              startDate: dates[0]
+              // 不指定结束日期，将使用当前日期
+            };
+          }
+
+          // 如果没有找到日期，尝试从“自...”的形式中提取
+          const sincePattern = /(?:since|from)\s+(\w+\s+\d{1,2}(?:st|nd|rd|th)?(?:,\s+\d{4})?)/i;
+          const sinceMatch = input.match(sincePattern);
+
+          if (sinceMatch && sinceMatch[1]) {
+            // 尝试将文本日期转换为 ISO 格式
+            try {
+              const date = new Date(sinceMatch[1]);
+              if (!isNaN(date.getTime())) {
+                return {
+                  startDate: date.toISOString().split('T')[0]
+                };
+              }
+            } catch (e) {
+              // 忽略解析错误
+            }
+          }
+
+          return {};
+        }
       }
     };
 
@@ -327,6 +447,132 @@ function ChatWindow({
             parameters: { expression }
           };
         }
+      } else if (userInput.toLowerCase().includes('time') ||
+                 userInput.toLowerCase().includes('date') ||
+                 userInput.toLowerCase().includes('timezone') ||
+                 userInput.toLowerCase().includes('time zone') ||
+                 /\b([A-Z]{3,4}(?:-[A-Za-z]+)?)\b/i.test(userInput)) {
+        // 时间相关问题
+
+        // 检查是否是时区转换请求
+        if (userInput.toLowerCase().includes('convert') ||
+            userInput.toLowerCase().includes('difference') ||
+            userInput.toLowerCase().includes('what time is it in') ||
+            (userInput.toLowerCase().includes('time') && userInput.toLowerCase().includes('in'))) {
+          const convertTool = availableTools.find(tool => tool.name === 'convert-timezone');
+          if (convertTool) {
+            // 提取源时区和目标时区
+            const fromTimezonePattern = /from\s+([A-Z]{3,4}(?:-[A-Za-z]+)?)/i;
+            const toTimezonePattern = /to\s+([A-Z]{3,4}(?:-[A-Za-z]+)?)/i;
+            const inTimezonePattern = /(?:in|at)\s+([A-Z]{3,4}(?:-[A-Za-z]+)?)/i;
+
+            const params = {};
+
+            // 提取源时区
+            const fromMatch = userInput.match(fromTimezonePattern);
+            if (fromMatch && fromMatch[1]) {
+              params.fromTimezone = fromMatch[1].toUpperCase();
+            } else {
+              params.fromTimezone = 'UTC';
+            }
+
+            // 提取目标时区
+            const toMatch = userInput.match(toTimezonePattern);
+            if (toMatch && toMatch[1]) {
+              params.toTimezone = toMatch[1].toUpperCase();
+            } else {
+              const inMatch = userInput.match(inTimezonePattern);
+              if (inMatch && inMatch[1]) {
+                params.toTimezone = inMatch[1].toUpperCase();
+              } else {
+                // 如果没有指定目标时区，尝试从文本中提取时区代码
+                const timezoneCodeMatch = userInput.match(/\b([A-Z]{3,4}(?:-[A-Za-z]+)?)\b/i);
+                if (timezoneCodeMatch && timezoneCodeMatch[1] && timezoneCodeMatch[1].toUpperCase() !== params.fromTimezone) {
+                  params.toTimezone = timezoneCodeMatch[1].toUpperCase();
+                } else {
+                  // 如果还是没有找到，使用 CST-China
+                  params.toTimezone = 'CST-China';
+                }
+              }
+            }
+
+            toolRequest = {
+              tool: convertTool,
+              parameters: params
+            };
+          }
+        } else if (userInput.toLowerCase().includes('date difference') ||
+                   userInput.toLowerCase().includes('days between') ||
+                   userInput.toLowerCase().includes('time between') ||
+                   userInput.toLowerCase().includes('how long since')) {
+          // 日期差异计算
+          const dateDiffTool = availableTools.find(tool => tool.name === 'calculate-date-difference');
+          if (dateDiffTool) {
+            // 提取日期
+            const datePattern = /(\d{4}-\d{2}-\d{2})/g;
+            const dates = [];
+            let match;
+
+            while ((match = datePattern.exec(userInput)) !== null) {
+              dates.push(match[1]);
+            }
+
+            const params = {};
+
+            if (dates.length >= 2) {
+              params.startDate = dates[0];
+              params.endDate = dates[1];
+            } else if (dates.length === 1) {
+              params.startDate = dates[0];
+            } else {
+              // 如果没有找到日期，尝试从“自...”的形式中提取
+              const sincePattern = /(?:since|from)\s+(\w+\s+\d{1,2}(?:st|nd|rd|th)?(?:,\s+\d{4})?)/i;
+              const sinceMatch = userInput.match(sincePattern);
+
+              if (sinceMatch && sinceMatch[1]) {
+                try {
+                  const date = new Date(sinceMatch[1]);
+                  if (!isNaN(date.getTime())) {
+                    params.startDate = date.toISOString().split('T')[0];
+                  }
+                } catch (e) {
+                  // 忽略解析错误
+                }
+              }
+            }
+
+            if (params.startDate) {
+              toolRequest = {
+                tool: dateDiffTool,
+                parameters: params
+              };
+            }
+          }
+        } else {
+          // 获取当前时间
+          const timeTool = availableTools.find(tool => tool.name === 'get-current-time');
+          if (timeTool) {
+            // 提取时区
+            const timezonePattern = /(?:in|at)\s+([A-Z]{3,4}(?:-[A-Za-z]+)?)/i;
+            const timezoneMatch = userInput.match(timezonePattern);
+
+            let timezone = 'UTC';
+            if (timezoneMatch && timezoneMatch[1]) {
+              timezone = timezoneMatch[1].toUpperCase();
+            } else {
+              // 尝试从文本中提取时区代码
+              const timezoneCodeMatch = userInput.match(/\b([A-Z]{3,4}(?:-[A-Za-z]+)?)\b/i);
+              if (timezoneCodeMatch && timezoneCodeMatch[1]) {
+                timezone = timezoneCodeMatch[1].toUpperCase();
+              }
+            }
+
+            toolRequest = {
+              tool: timeTool,
+              parameters: { timezone }
+            };
+          }
+        }
       } else {
         // 其他信息查询问题
         const searchTool = availableTools.find(tool => tool.name === 'web-search');
@@ -373,6 +619,13 @@ function ChatWindow({
             result.links.forEach((link, index) => {
               formattedResult += `${index + 1}. [${link.title}](${link.url})\n`;
             });
+          } else if (result.results && Array.isArray(result.results)) {
+            result.results.forEach((item, index) => {
+              formattedResult += `${index + 1}. [${item.title}](${item.url})\n`;
+              if (item.snippet) {
+                formattedResult += `   ${item.snippet}\n\n`;
+              }
+            });
           } else {
             formattedResult += result.result || JSON.stringify(result, null, 2);
           }
@@ -385,6 +638,39 @@ function ChatWindow({
           formattedResult = `**Calculation Result:**\n\n`;
           formattedResult += `Expression: ${result.expression || toolRequest.parameters.expression}\n`;
           formattedResult += `Result: ${result.result !== undefined ? result.result : 'Error in calculation'}\n`;
+        } else if (toolRequest.tool.name === 'get-current-time') {
+          formattedResult = `**Current Time in ${result.timezoneName || result.timezone || 'the requested timezone'}:**\n\n`;
+          formattedResult += `- Time: ${result.formattedTime || result.time || 'N/A'}\n`;
+          formattedResult += `- Timezone: ${result.timezoneName || result.timezone || 'N/A'} (UTC${result.offset >= 0 ? '+' : ''}${result.offset})\n`;
+          formattedResult += `- Date: ${new Date(result.time || result.timestamp).toDateString()}\n`;
+        } else if (toolRequest.tool.name === 'convert-timezone') {
+          formattedResult = `**Time Conversion Result:**\n\n`;
+          formattedResult += `- From: ${result.originalTimezoneName || result.originalTimezone || 'N/A'} (${new Date(result.originalTime).toLocaleString()})\n`;
+          formattedResult += `- To: ${result.targetTimezoneName || result.targetTimezone || 'N/A'} (${new Date(result.targetTime).toLocaleString()})\n`;
+          formattedResult += `- Converted Time: ${result.formattedTargetTime || new Date(result.targetTime).toLocaleString()}\n`;
+          formattedResult += `- Time Difference: ${result.timeDifference || 'N/A'}\n`;
+        } else if (toolRequest.tool.name === 'calculate-date-difference') {
+          formattedResult = `**Date Difference Calculation:**\n\n`;
+          formattedResult += `- Start Date: ${new Date(result.startDate).toDateString()}\n`;
+          formattedResult += `- End Date: ${new Date(result.endDate).toDateString()}\n`;
+          formattedResult += `- Difference: ${result.formatted || 'N/A'}\n`;
+
+          if (result.difference) {
+            formattedResult += `\n**Detailed Difference:**\n`;
+            formattedResult += `- Years: ${result.difference.years || 0}\n`;
+            formattedResult += `- Months: ${result.difference.months || 0}\n`;
+            formattedResult += `- Days: ${result.difference.days || 0}\n`;
+            formattedResult += `- Hours: ${result.difference.hours || 0}\n`;
+          }
+        } else if (toolRequest.tool.name === 'list-timezones') {
+          formattedResult = `**Available Timezones:**\n\n`;
+          if (result.timezones && Array.isArray(result.timezones)) {
+            result.timezones.forEach((tz) => {
+              formattedResult += `- ${tz.code}: ${tz.name} (UTC${tz.offset >= 0 ? '+' : ''}${tz.offset})\n`;
+            });
+          } else {
+            formattedResult += JSON.stringify(result, null, 2);
+          }
         } else {
           // 其他工具类型的默认格式
           formattedResult = JSON.stringify(result, null, 2);
