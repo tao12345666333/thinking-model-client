@@ -1,0 +1,248 @@
+/* MCP 服务器管理样式 */
+
+/* 内置服务器部分 */
+.built-in-servers-section {
+  margin-bottom: 20px;
+}
+
+.built-in-servers-section h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--text-color);
+}
+
+.built-in-servers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.built-in-server-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.server-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.server-name {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.server-status {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.server-status.running {
+  background-color: #e6f7e6;
+  color: #2e7d32;
+}
+
+.server-status.stopped {
+  background-color: #f5f5f5;
+  color: #757575;
+}
+
+.server-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.server-action-button {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.server-action-button:hover {
+  background-color: #f0f0f0;
+}
+
+.server-action-button.start {
+  border-color: #4caf50;
+  color: #2e7d32;
+}
+
+.server-action-button.start:hover {
+  background-color: #e8f5e9;
+}
+
+.server-action-button.stop {
+  border-color: #f44336;
+  color: #d32f2f;
+}
+
+.server-action-button.stop:hover {
+  background-color: #ffebee;
+}
+
+.server-action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 用户服务器列表 */
+.profiles-list h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--text-color);
+}
+
+.profile-item.running {
+  border-left: 3px solid #4caf50;
+}
+
+.server-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 8px;
+}
+
+.server-badge.running {
+  background-color: #e6f7e6;
+  color: #2e7d32;
+}
+
+.server-badge.stopped {
+  background-color: #f5f5f5;
+  color: #757575;
+}
+
+/* 连接测试 */
+.input-with-button {
+  display: flex;
+  gap: 8px;
+}
+
+.input-with-button input {
+  flex: 1;
+}
+
+.test-connection-button {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  background-color: white;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.test-connection-button:hover {
+  background-color: #f0f0f0;
+}
+
+.test-connection-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.connection-test-result {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.connection-test-result.success {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.connection-test-result.error {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.available-tools {
+  margin-top: 8px;
+}
+
+.available-tools p {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.available-tools ul {
+  margin-left: 20px;
+  font-size: 12px;
+}
+
+.available-tools li {
+  margin-bottom: 2px;
+}
+
+/* 内置服务器控制 */
+.built-in-server-controls {
+  margin-top: 15px;
+  padding: 12px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+.built-in-server-note {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.server-control-button {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.server-control-button.start {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+}
+
+.server-control-button.start:hover {
+  background-color: #388e3c;
+}
+
+.server-control-button.stop {
+  background-color: #f44336;
+  color: white;
+  border: none;
+}
+
+.server-control-button.stop:hover {
+  background-color: #d32f2f;
+}
+
+/* 加载指示器 */
+.loading-indicator {
+  padding: 10px;
+  text-align: center;
+  color: #757575;
+  font-style: italic;
+  font-size: 13px;
+}

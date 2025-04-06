@@ -1,5 +1,6 @@
 /* Import MCP styles */
 @import './styles/mcp.css';
+@import './styles/mcp-settings.css';
 
 @tailwind base;
 @tailwind components;
