@@ -2,28 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base styles */
+/* Enterprise Design System */
 :root {
-  --primary-color: #3e6ae1;
-  --primary-hover: #2952c8;
-  --text-color: #1a1a1a;
-  --light-text: #4d4d4d;
-  --lightest-text: #737373;
-  --border-color: #e5e7eb;
-  --background-color: #ffffff;
-  --sidebar-width: 280px;
-  --header-height: 60px;
-  --reasoning-background: #f9fafb;
-  --user-message-bg: #f9f8f6;
-  --user-message-color: var(--text-color);
-  --assistant-message-bg: #f9f9f9;
-  --assistant-message-color: #1a1a1a;
-  --hover-color: #f5f5f5;
-  --active-color: #e6f2ff;
+  /* Primary Brand Colors */
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #dbeafe;
+  --primary-dark: #1e3a8a;
+  
+  /* Secondary Colors */
+  --secondary-color: #64748b;
+  --secondary-hover: #475569;
+  --secondary-light: #f1f5f9;
+  
+  /* Neutral Palette */
+  --text-color: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+  --text-disabled: #cbd5e1;
+  
+  /* Background System */
+  --background-primary: #ffffff;
+  --background-secondary: #f8fafc;
+  --background-tertiary: #f1f5f9;
+  --background-elevated: #ffffff;
+  
+  /* Border System */
+  --border-color: #e2e8f0;
+  --border-light: #f1f5f9;
+  --border-dark: #cbd5e1;
+  --border-accent: #3b82f6;
+  
+  /* Status Colors */
+  --success-color: #059669;
+  --success-light: #d1fae5;
+  --warning-color: #d97706;
+  --warning-light: #fef3c7;
+  --error-color: #dc2626;
+  --error-light: #fee2e2;
+  --info-color: #0284c7;
+  --info-light: #e0f2fe;
+  
+  /* Layout Variables */
+  --sidebar-width: 320px;
+  --header-height: 64px;
+  --border-radius: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+  
+  /* Shadow System */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  
+  /* Message Specific */
+  --reasoning-background: var(--background-tertiary);
+  --user-message-bg: var(--primary-color);
+  --user-message-color: #ffffff;
+  --assistant-message-bg: var(--background-elevated);
+  --assistant-message-color: var(--text-color);
+  --hover-color: var(--background-secondary);
+  --active-color: var(--primary-light);
 
   /* Responsive sidebar width */
   --mobile-sidebar-width: 100%;
-  --tablet-sidebar-width: 250px;
+  --tablet-sidebar-width: 280px;
+  
+  /* Animation System */
+  --transition-fast: 150ms ease-out;
+  --transition-normal: 250ms ease-out;
+  --transition-slow: 350ms ease-out;
 }
 
 * {

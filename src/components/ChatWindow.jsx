@@ -342,25 +342,7 @@ function ChatWindow({
   };
 
   return (
-    <div className="chat-window relative">
-      {/* Floating New Chat button */}
-      <button
-        onClick={() => {
-          console.log('Floating new chat button clicked');
-          // 在创建新聊天前添加一些日志
-          if (typeof onCreateNewChat === 'function') {
-            console.log('Calling onCreateNewChat function');
-            onCreateNewChat();
-            console.log('onCreateNewChat function called');
-          } else {
-            console.error('onCreateNewChat is not a function');
-          }
-        }}
-        className="floating-new-chat"
-        title="Create a new conversation"
-      >
-        <span className="text-xl">+</span>
-      </button>
+    <div className="flex flex-col h-full bg-background-primary">
       <div className="chat-messages">
         {chat && chat.messages && chat.messages.map((message, index) => {
           const parsedMessage = message.role === 'assistant'
