@@ -38,6 +38,15 @@ self.addEventListener('activate', event => {
 
 // Fetch event - serve from cache if available, otherwise fetch from network
 self.addEventListener('fetch', event => {
+  // Skip caching for localhost/development
+  const isLocalhost = event.request.url.includes('localhost') || event.request.url.includes('127.0.0.1');
+  
+  if (isLocalhost) {
+    // In development, always fetch from network (no caching)
+    event.respondWith(fetch(event.request));
+    return;
+  }
+  
   event.respondWith(
     caches.match(event.request)
       .then(response => {

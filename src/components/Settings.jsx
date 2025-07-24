@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { clearAllCache, hardRefresh, checkCacheStatus } from '../utils/clearCache';
 
 function Settings({
   profiles,
@@ -704,6 +705,96 @@ function Settings({
               </div>
             </div>
           )}
+        </div>
+
+        {/* Developer Tools Section */}
+        <div className="profiles-section">
+          <h3>Developer Tools</h3>
+          <div className="developer-tools-section">
+            <div className="tool-group">
+              <h4>Cache Management</h4>
+              <p className="tool-description">Clear PWA cache and service workers that might interfere with page refreshing.</p>
+              
+              <div className="tool-buttons">
+                <button
+                  type="button"
+                  className="dev-tool-button"
+                  onClick={async () => {
+                    try {
+                      await clearAllCache();
+                      alert('Cache cleared successfully! Page will refresh.');
+                      window.location.reload();
+                    } catch (error) {
+                      alert('Error clearing cache: ' + error.message);
+                    }
+                  }}
+                >
+                  Clear All Cache
+                </button>
+                
+                <button
+                  type="button"
+                  className="dev-tool-button secondary"
+                  onClick={async () => {
+                    try {
+                      await hardRefresh();
+                    } catch (error) {
+                      alert('Error performing hard refresh: ' + error.message);
+                    }
+                  }}
+                >
+                  Hard Refresh
+                </button>
+                
+                <button
+                  type="button"
+                  className="dev-tool-button secondary"
+                  onClick={async () => {
+                    try {
+                      await checkCacheStatus();
+                      alert('Check console for cache status details');
+                    } catch (error) {
+                      alert('Error checking cache status: ' + error.message);
+                    }
+                  }}
+                >
+                  Check Cache Status
+                </button>
+              </div>
+            </div>
+            
+            <div className="tool-group">
+              <h4>Storage Management</h4>
+              <p className="tool-description">Clear local storage data including chat history and settings.</p>
+              
+              <div className="tool-buttons">
+                <button
+                  type="button"
+                  className="dev-tool-button warning"
+                  onClick={() => {
+                    if (confirm('This will clear all local data including chat history. Are you sure?')) {
+                      localStorage.clear();
+                      sessionStorage.clear();
+                      alert('Local storage cleared! Page will refresh.');
+                      window.location.reload();
+                    }
+                  }}
+                >
+                  Clear Local Storage
+                </button>
+              </div>
+            </div>
+            
+            <div className="tool-group">
+              <h4>PWA Status</h4>
+              <p className="tool-description">PWA (Progressive Web App) functionality is currently disabled to improve page refresh behavior.</p>
+              
+              <div className="pwa-info">
+                <span className="status-indicator disabled">PWA Disabled</span>
+                <small>Service worker registration is commented out in main.jsx</small>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="settings-actions">
