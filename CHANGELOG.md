@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-07-24
+
+### Added
+- xsai integration for LLM provider connections
+- Automatic reasoning extraction using `@xsai/utils-reasoning`
+- Test script for xsai integration (`test-xsai.js`)
+- Enhanced documentation for xsai usage
+
+### Changed
+- **BREAKING**: Migrated from `node-fetch` to xsai SDK for all AI model connections
+- Chat endpoint now uses `@xsai/stream-text` for streaming responses
+- Summarization endpoint now uses `@xsai/generate-text` for text generation
+- Improved error handling and streaming reliability
+- Enhanced reasoning process extraction and display
+
+### Removed
+- `node-fetch` dependency (replaced by xsai packages)
+
+### Technical Details
+- Server now uses xsai's `streamText` and `generateText` functions
+- Automatic extraction of thinking processes from model responses
+- Better streaming performance and error handling
+- Runtime-agnostic AI SDK support
+
 ## [0.1.1] - 2025-03-23
 
 ### Added

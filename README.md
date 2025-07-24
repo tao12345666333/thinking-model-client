@@ -37,6 +37,8 @@ A modern React-based chat application that provides a unique interface for inter
 - 🛠️ **Modern Stack**: Built with React and Vite for optimal performance and development experience
 - 🧪 **Quality Assured**: Comprehensive unit tests ensure reliable functionality
 - 🔒 **Local Data Storage**: All data is stored locally for enhanced privacy and security
+- ⚡ **xsai Integration**: Powered by xsai (extra-small AI SDK) for efficient and lightweight AI model connections
+- 🧩 **Reasoning Extraction**: Automatic extraction and visualization of AI reasoning processes using xsai utilities
 
 ## Getting Started
 
@@ -93,3 +95,39 @@ A separate profile for conversation summarization:
 - **Model Name**: The model to use for summarization
 
 All settings are stored locally for privacy and security. You can manage multiple chat profiles and switch between them as needed.
+
+## xsai Integration 🤖
+
+This application now uses [xsai](https://github.com/moeru-ai/xsai) - an extra-small AI SDK for efficient LLM connections. The integration provides:
+
+### Key Benefits
+- **Lightweight**: Minimal dependencies and small bundle size
+- **Runtime Agnostic**: Works in Node.js, Deno, Bun, and browsers
+- **Streaming Support**: Built-in streaming capabilities for real-time responses
+- **Reasoning Extraction**: Automatic extraction of thinking processes from model responses
+
+### Technical Implementation
+- **Chat Streaming**: Uses `@xsai/stream-text` for real-time message streaming
+- **Summarization**: Uses `@xsai/generate-text` for conversation title generation
+- **Reasoning Processing**: Uses `@xsai/utils-reasoning` to extract and display thinking processes
+
+### Testing xsai Integration
+
+To test the xsai integration independently:
+
+1. Edit the `test-xsai.js` file with your API credentials
+2. Run the test script:
+
+```bash
+node test-xsai.js
+```
+
+This will test both text generation and streaming with reasoning extraction.
+
+### Migration from node-fetch
+
+The application has been migrated from using `node-fetch` directly to using xsai's abstraction layer. This provides:
+- Better error handling
+- Consistent API across different model providers
+- Built-in streaming utilities
+- Simplified reasoning extraction

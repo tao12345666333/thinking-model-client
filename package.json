@@ -1,7 +1,7 @@
 {
   "name": "thinking-model-client",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -18,9 +18,11 @@
     "test:build": "start-server-and-test serve:build http://localhost:5173 'cypress run --spec cypress/e2e/message-routing-simple.cy.js'"
   },
   "dependencies": {
+    "@xsai/generate-text": "^0.3.3",
+    "@xsai/stream-text": "^0.3.3",
+    "@xsai/utils-reasoning": "^0.3.3",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "node-fetch": "^3.3.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^10.0.0"
