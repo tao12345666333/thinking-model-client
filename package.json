@@ -1,7 +1,7 @@
 {
   "name": "thinking-model-client",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -19,10 +19,12 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.8.0",
+    "@xsai/generate-text": "^0.3.3",
+    "@xsai/stream-text": "^0.3.3",
+    "@xsai/utils-reasoning": "^0.3.3",
     "cors": "^2.8.5",
     "eventsource": "^3.0.6",
     "express": "^4.18.2",
-    "node-fetch": "^3.3.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^10.0.0",

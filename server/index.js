@@ -1,8 +1,10 @@
 import express from 'express';
 import cors from 'cors';
-import fetch from 'node-fetch';
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { streamText } from '@xsai/stream-text';
+import { generateText } from '@xsai/generate-text';
+import { extractReasoningStream } from '@xsai/utils-reasoning';
 import { callMcpServer, discoverMcpServerTools, executeMcpTool } from './mcp.js';
 import {
   getAvailableMcpServers,
@@ -31,44 +33,29 @@ app.post('/api/summarize', async (req, res) => {
   });
 
   try {
-    let apiUrl;
+    let baseURL;
     if (apiEndpoint.endsWith('#')) {
-        apiUrl = apiEndpoint.slice(0, -1);
+        baseURL = apiEndpoint.slice(0, -1);
     } else if (apiEndpoint.endsWith('/')) {
-        apiUrl = `${apiEndpoint}chat/completions`;
+        baseURL = `${apiEndpoint}v1`;
     } else {
-        apiUrl = `${apiEndpoint}/v1/chat/completions`;
+        baseURL = `${apiEndpoint}/v1`;
     }
-    console.log('Calling API endpoint:', apiUrl);
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: [{
-          role: 'user',
-          content: `Summarize this conversation in 3-5 words: ${content}`
-        }],
-        temperature: 0.2,
-        max_tokens: 20
-      })
+    console.log('Calling API baseURL:', baseURL);
+    
+    const { text } = await generateText({
+      apiKey: apiKey,
+      baseURL: baseURL,
+      model: model,
+      messages: [{
+        role: 'user',
+        content: `Summarize this conversation in 3-5 words: ${content}`
+      }],
+      temperature: 0.2,
+      max_tokens: 20
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('API error:', {
-        status: response.status,
-        error: errorData
-      });
-      throw new Error(`API error: ${response.status} - ${errorData}`);
-    }
-
-    const data = await response.json();
-    const summary = data.choices[0].message.content.trim();
+    const summary = text.trim();
     res.json({ summary });
   } catch (error) {
     console.error('Error:', error);
@@ -86,40 +73,26 @@ app.post('/api/chat', async (req, res) => {
   });
 
   try {
-    let apiUrl;
+    let baseURL;
     if (apiEndpoint.endsWith('#')) {
-        apiUrl = apiEndpoint.slice(0, -1);
+        baseURL = apiEndpoint.slice(0, -1);
     } else if (apiEndpoint.endsWith('/')) {
-        apiUrl = `${apiEndpoint}chat/completions`;
+        baseURL = `${apiEndpoint}v1`;
     } else {
-        apiUrl = `${apiEndpoint}/v1/chat/completions`;
+        baseURL = `${apiEndpoint}/v1`;
     }
-    console.log('Calling API endpoint:', apiUrl);
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: messages,
-        stream: true
-      })
+    console.log('Calling API baseURL:', baseURL);
+    
+    // Use xsai to stream text from the AI model
+    const { textStream } = await streamText({
+      apiKey: apiKey,
+      baseURL: baseURL,
+      model: model,
+      messages: messages
     });
 
-    console.log('API response status:', response.status);
-    console.log('API response headers:', Object.fromEntries(response.headers.entries()));
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('API error:', {
-        status: response.status,
-        error: errorData
-      });
-      throw new Error(`API error: ${response.status} - ${errorData}`);
-    }
+    // Extract reasoning and content streams
+    const { reasoningStream, textStream: contentStream } = extractReasoningStream(textStream);
 
     // Set headers for streaming
     res.setHeader('Content-Type', 'text/event-stream');
@@ -133,16 +106,71 @@ app.post('/api/chat', async (req, res) => {
       'Connection': 'keep-alive'
     });
 
-    // Pipe the API response to the client
-    response.body.pipe(res).on('error', (err) => {
-      console.error('Stream error:', err);
-      res.status(500).end();
-    }).on('end', () => {
-      console.log('Stream completed successfully');
+    let reasoningText = '';
+    let contentText = '';
+    let isReasoningComplete = false;
+
+    // Handle client disconnect
+    req.on('close', () => {
+      console.log('Client disconnected');
     });
+
+    try {
+      // First, collect all reasoning
+      console.log('Collecting reasoning...');
+      for await (const chunk of reasoningStream) {
+        reasoningText += chunk;
+      }
+      isReasoningComplete = true;
+      console.log('Reasoning collection complete');
+
+      // If we have reasoning, send it first wrapped in think tags
+      if (reasoningText.trim()) {
+        const thinkingChunk = {
+          choices: [{
+            delta: {
+              content: `<think>${reasoningText}</think>`
+            }
+          }]
+        };
+        res.write(`data: ${JSON.stringify(thinkingChunk)}\n\n`);
+      }
+
+      // Then stream the content
+      console.log('Starting content stream...');
+      for await (const chunk of contentStream) {
+        if (res.destroyed) break;
+        
+        const responseChunk = {
+          choices: [{
+            delta: {
+              content: chunk
+            }
+          }]
+        };
+        
+        res.write(`data: ${JSON.stringify(responseChunk)}\n\n`);
+        contentText += chunk;
+      }
+
+      // Send completion marker
+      res.write('data: [DONE]\n\n');
+      res.end();
+      console.log('Stream completed successfully');
+      
+    } catch (streamError) {
+      console.error('Streaming error:', streamError);
+      if (!res.destroyed) {
+        res.write(`data: ${JSON.stringify({ error: streamError.message })}\n\n`);
+        res.end();
+      }
+    }
+
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ error: error.message });
+    if (!res.destroyed) {
+      res.status(500).json({ error: error.message });
+    }
   }
 });
 
